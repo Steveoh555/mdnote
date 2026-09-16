@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>md 파일을 PDF·워드로 바꾸는 법 – MDnote</title>
+  <meta name="description" content="md 파일을 PDF나 워드(.docx), HTML로 바꾸는 가장 쉬운 방법. 프로그램 하나로 서식을 유지한 채 변환하고, 워드 붙여넣기 요령까지." />
+  <meta property="og:title" content="md 파일을 PDF·워드로 바꾸는 법" />
+  <meta property="og:description" content="md 파일을 PDF나 워드(.docx), HTML로 바꾸는 가장 쉬운 방법. 프로그램 하나로 서식을 유지한 채 변환하고, 워드 붙여넣기 요령까지." />
+  <meta property="og:type" content="article" />
+  <link rel="canonical" href="https://mdnote.pages.dev/guide/md-to-pdf.html" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/site/site.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/"><img src="/favicon.svg" alt="" width="28" height="28" /><span>MDnote</span></a>
+    <nav class="nav__links"><a href="/">홈</a><a href="/guide/">안내 글</a><a class="nav__cta" href="/app/">브라우저에서 사용</a></nav>
+  </header>
+  <main class="doc">
+    <h1>md 파일을 PDF·워드로 바꾸는 법</h1>
+    <p class="meta">MDnote 안내 글 · 읽는 데 3분</p>
+    <p class="lead">md 파일은 읽기엔 좋지만, 회사나 학교에 낼 때는 PDF나 워드가 필요합니다. 온라인 변환 사이트에 문서를 올리지 않고 내 컴퓨터에서 바로 바꾸는 방법입니다.</p>
+
+    <h2>PDF로 바꾸기 (가장 자주 쓰는 방법)</h2>
+    <ol>
+      <li>MDnote로 md 파일을 엽니다.</li>
+      <li>오른쪽 위 <strong>내보내기 → PDF로 (인쇄)</strong>를 누르거나 <kbd>Ctrl+P</kbd>.</li>
+      <li>인쇄 창에서 프린터를 <strong>PDF로 저장</strong>(윈도우: Microsoft Print to PDF, 맥: PDF로 저장)으로 고르고 저장합니다.</li>
+    </ol>
+    <p>화면에서 보던 제목·표·목록·코드가 그대로 PDF에 들어갑니다. 왼쪽 목차와 버튼은 자동으로 빠집니다.</p>
+
+    <h2>HTML로 바꾸기</h2>
+    <p><strong>내보내기 → HTML 파일로</strong>를 누르면 파일 하나로 저장됩니다. 서식과 글꼴 설정이 파일 안에 들어 있어 어느 브라우저에서 열어도 같은 모양입니다. 이메일로 보내거나 회사 게시판에 올리기에 편합니다.</p>
+
+    <h2>워드(.docx)로 바꾸기</h2>
+    <p>가장 간단한 방법은 <strong>HTML로 내보낸 뒤 워드에서 그 파일을 여는 것</strong>입니다. 워드는 HTML을 열 수 있고, 제목·표·목록이 워드 서식으로 바뀝니다. 연 다음 <strong>다른 이름으로 저장 → Word 문서(.docx)</strong>를 고르면 됩니다.</p>
+    <p>한글(HWP)도 같습니다. HTML 파일을 한글에서 열고 .hwp로 저장하세요.</p>
+    <p>붙여넣기로 하고 싶다면 MDnote 읽기 화면에서 본문을 드래그해 복사한 뒤 워드에 붙여 넣으세요. 표와 목록이 대체로 유지되지만, 코드 블록은 배경색이 사라질 수 있습니다.</p>
+
+    <h2>변환 사이트를 쓰지 말라는 이유</h2>
+    <p>AI가 만들어 준 문서에는 회사 자료나 개인 정보가 섞여 있는 경우가 많습니다. 온라인 변환 사이트는 파일을 서버에 올립니다. MDnote는 서버가 없어 문서가 컴퓨터 밖으로 나가지 않습니다.</p>
+
+    <h2>인쇄 결과가 이상할 때</h2>
+    <ul>
+      <li><strong>표가 잘려요</strong>: 인쇄 창에서 용지 방향을 <strong>가로</strong>로 바꾸세요.</li>
+      <li><strong>글자가 작아요</strong>: MDnote 설정에서 읽기 글자 크기를 18px로 올린 뒤 인쇄하세요.</li>
+      <li><strong>다크 테마로 인쇄돼요</strong>: 인쇄는 항상 흰 바탕으로 나갑니다. 화면 테마와 무관합니다.</li>
+    </ul>
+
+    <div class="cta">
+      <p><strong>MDnote</strong>는 .md 파일을 더블클릭 한 번에 깔끔한 문서로 보여 주는 무료 프로그램입니다. 회원가입도, 서버도 없습니다.</p>
+      <a class="btn btn--primary" href="/#download">무료로 내려받기</a>
+      <a class="btn" href="/app/">설치 없이 브라우저에서 열기</a>
+    </div>
+    <div class="related"><strong>함께 읽기</strong><ul><li><a href="/guide/md-file-open.html">md 파일 여는 법 (윈도우·맥)</a></li><li><a href="/guide/chatgpt-md.html">ChatGPT 답변을 md 파일로 저장하고 읽는 법</a></li><li><a href="/guide/notion-export.html">노션에서 내보낸 파일 읽기</a></li></ul></div>
+  </main>
+  <div class="ad-slot" aria-label="광고"><!-- AdSense --><span>광고</span></div>
+  <footer class="footer"><span>© 2026 MDnote</span><a href="/privacy.html">개인정보처리방침</a><a href="https://github.com/steveoh555/mdnote" rel="noopener" target="_blank">GitHub</a></footer>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>마크다운 10분 문법 – MDnote</title>
+  <meta name="description" content="비개발자를 위한 마크다운 기초. 제목, 굵게, 목록, 체크리스트, 표, 링크까지 실제로 쓰는 기호 8개만 10분에 익힙니다." />
+  <meta property="og:title" content="마크다운 10분 문법" />
+  <meta property="og:description" content="비개발자를 위한 마크다운 기초. 제목, 굵게, 목록, 체크리스트, 표, 링크까지 실제로 쓰는 기호 8개만 10분에 익힙니다." />
+  <meta property="og:type" content="article" />
+  <link rel="canonical" href="https://mdnote.pages.dev/guide/markdown-basics.html" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/site/site.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/"><img src="/favicon.svg" alt="" width="28" height="28" /><span>MDnote</span></a>
+    <nav class="nav__links"><a href="/">홈</a><a href="/guide/">안내 글</a><a class="nav__cta" href="/app/">브라우저에서 사용</a></nav>
+  </header>
+  <main class="doc">
+    <h1>마크다운 10분 문법</h1>
+    <p class="meta">MDnote 안내 글 · 읽는 데 3분</p>
+    <p class="lead">마크다운은 외울 게 별로 없습니다. 아래 여덟 가지만 알면 AI가 준 문서를 읽고 고치는 데 충분합니다. MDnote의 <strong>나란히</strong> 보기에서 왼쪽에 입력하면서 오른쪽 결과를 보면 10분 안에 손에 익습니다.</p>
+
+    <h2>1. 제목: # 기호</h2>
+    <p><code>#</code> 하나면 큰 제목, 두 개면 중간 제목, 세 개면 작은 제목입니다. <code>#</code> 뒤에는 꼭 한 칸을 띄우세요.</p>
+    <pre><code># 보고서 제목
+## 1. 개요
+### 1-1. 배경</code></pre>
+
+    <h2>2. 문단과 줄바꿈: 빈 줄</h2>
+    <p>문단을 나누려면 사이에 <strong>빈 줄</strong>을 하나 넣습니다. 그냥 Enter 한 번은 같은 문단으로 이어집니다. 이걸 몰라서 줄바꿈이 안 된다고 느끼는 분이 가장 많습니다.</p>
+
+    <h2>3. 강조: 별표</h2>
+    <p><code>**굵게**</code> → <strong>굵게</strong>, <code>*기울임*</code> → <em>기울임</em>, <code>~~취소선~~</code> → <s>취소선</s>.</p>
+
+    <h2>4. 목록: - 와 1.</h2>
+    <pre><code>- 사과
+- 배
+  - 신고배 (앞에 공백 두 칸이면 한 단계 안으로)
+
+1. 물을 끓인다
+2. 면을 넣는다</code></pre>
+
+    <h2>5. 체크리스트: - [ ]</h2>
+    <p><code>- [ ] 할 일</code>은 빈 상자, <code>- [x] 한 일</code>은 완료입니다. MDnote에서는 읽기 화면의 상자를 클릭하면 파일도 같이 바뀝니다.</p>
+
+    <h2>6. 링크와 이미지</h2>
+    <p>링크는 <code>[보이는 글](주소)</code>, 이미지는 앞에 느낌표를 붙여 <code>![설명](이미지 주소)</code>입니다. 주소만 그대로 적어도 링크가 됩니다.</p>
+
+    <h2>7. 표: 세로줄</h2>
+    <pre><code>| 항목 | 수량 |
+| --- | --- |
+| 연필 | 3 |
+| 공책 | 2 |</code></pre>
+    <p>둘째 줄의 <code>---</code>가 "여기가 표"라는 표시입니다. 칸 너비는 맞추지 않아도 됩니다.</p>
+
+    <h2>8. 인용과 코드</h2>
+    <p>줄 앞에 <code>&gt;</code>를 붙이면 인용문, 글 안에서 <code>`</code>(키보드 숫자 1 왼쪽)로 감싸면 코드나 파일 이름처럼 보입니다. 여러 줄은 <code>```</code> 세 개로 위아래를 감쌉니다.</p>
+
+    <h2>그 외에 알아 두면 좋은 것</h2>
+    <ul>
+      <li><code>---</code>만 있는 줄은 가로 구분선입니다.</li>
+      <li>기호를 글자 그대로 쓰고 싶으면 앞에 <code>\</code>를 붙입니다. 예: <code>\*별표\*</code></li>
+      <li>워드처럼 글자 색, 글꼴, 가운데 정렬은 기본 마크다운에 없습니다. 그래서 어디서 열어도 모양이 같습니다.</li>
+    </ul>
+    <p>MDnote를 처음 실행하면 이 내용을 직접 고쳐 보며 연습할 수 있는 <strong>Markdown 사용설명서</strong>가 열립니다.</p>
+
+    <div class="cta">
+      <p><strong>MDnote</strong>는 .md 파일을 더블클릭 한 번에 깔끔한 문서로 보여 주는 무료 프로그램입니다. 회원가입도, 서버도 없습니다.</p>
+      <a class="btn btn--primary" href="/#download">무료로 내려받기</a>
+      <a class="btn" href="/app/">설치 없이 브라우저에서 열기</a>
+    </div>
+    <div class="related"><strong>함께 읽기</strong><ul><li><a href="/guide/md-file-open.html">md 파일 여는 법 (윈도우·맥)</a></li><li><a href="/guide/chatgpt-md.html">ChatGPT 답변을 md 파일로 저장하고 읽는 법</a></li><li><a href="/guide/notion-export.html">노션에서 내보낸 파일 읽기</a></li></ul></div>
+  </main>
+  <div class="ad-slot" aria-label="광고"><!-- AdSense --><span>광고</span></div>
+  <footer class="footer"><span>© 2026 MDnote</span><a href="/privacy.html">개인정보처리방침</a><a href="https://github.com/steveoh555/mdnote" rel="noopener" target="_blank">GitHub</a></footer>
+</body>
+</html>

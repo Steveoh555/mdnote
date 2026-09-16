@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>노션에서 내보낸 파일 읽기 – MDnote</title>
+  <meta name="description" content="노션(Notion) 페이지를 내보내면 ZIP 안에 .md 파일과 이미지 폴더가 들어 있습니다. 압축을 풀고 MDnote로 폴더째 열어 정리된 문서로 읽는 방법." />
+  <meta property="og:title" content="노션에서 내보낸 파일 읽기" />
+  <meta property="og:description" content="노션(Notion) 페이지를 내보내면 ZIP 안에 .md 파일과 이미지 폴더가 들어 있습니다. 압축을 풀고 MDnote로 폴더째 열어 정리된 문서로 읽는 방법." />
+  <meta property="og:type" content="article" />
+  <link rel="canonical" href="https://mdnote.pages.dev/guide/notion-export.html" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/site/site.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/"><img src="/favicon.svg" alt="" width="28" height="28" /><span>MDnote</span></a>
+    <nav class="nav__links"><a href="/">홈</a><a href="/guide/">안내 글</a><a class="nav__cta" href="/app/">브라우저에서 사용</a></nav>
+  </header>
+  <main class="doc">
+    <h1>노션에서 내보낸 파일 읽기</h1>
+    <p class="meta">MDnote 안내 글 · 읽는 데 3분</p>
+    <p class="lead">노션에서 <strong>내보내기</strong>를 하면 <code>.zip</code> 파일 하나를 받게 됩니다. 압축을 풀면 <code>.md</code> 문서와 이미지 폴더가 나오는데, 메모장으로 열면 기호만 보입니다. MDnote로 폴더째 열면 노션에서 보던 것과 거의 같은 모습으로 읽을 수 있습니다.</p>
+
+    <h2>1. 노션에서 내보내기</h2>
+    <ol>
+      <li>내보낼 페이지 오른쪽 위 <strong>···</strong> → <strong>내보내기</strong>.</li>
+      <li>내보내기 형식은 <strong>Markdown &amp; CSV</strong>, "하위 페이지 포함"을 켭니다.</li>
+      <li>받은 ZIP 파일을 우클릭 → <strong>압축 풀기</strong>.</li>
+    </ol>
+
+    <h2>2. MDnote로 폴더 열기</h2>
+    <p>MDnote를 열고 왼쪽 <strong>폴더 열기</strong>를 눌러 압축을 푼 폴더를 고릅니다. 하위 페이지까지 모두 목록에 나오고, 클릭해서 넘겨가며 읽을 수 있습니다. 파일 이름 뒤에 붙는 긴 영문·숫자 코드는 노션이 붙인 페이지 ID이니 신경 쓰지 않아도 됩니다.</p>
+
+    <h2>3. 표, 체크박스, 콜아웃은 어떻게 보이나요?</h2>
+    <table>
+      <tr><th>노션 요소</th><th>내보낸 결과</th><th>MDnote에서</th></tr>
+      <tr><td>제목, 글머리, 번호 목록</td><td>그대로</td><td>정상 표시</td></tr>
+      <tr><td>할 일(체크박스)</td><td><code>- [ ]</code></td><td>클릭해서 체크 가능</td></tr>
+      <tr><td>표</td><td>마크다운 표</td><td>정상 표시. 데이터베이스는 CSV로 따로 나옴</td></tr>
+      <tr><td>콜아웃</td><td>인용문(<code>&gt;</code>)</td><td>회색 세로선 인용으로 표시</td></tr>
+      <tr><td>토글</td><td>본문으로 펼쳐짐</td><td>항상 펼쳐진 상태</td></tr>
+      <tr><td>이미지</td><td>같은 폴더 안 이미지 파일</td><td>폴더째 열면 표시. 파일 하나만 옮기면 안 보임</td></tr>
+    </table>
+
+    <h2>4. 이미지가 안 보일 때</h2>
+    <p>노션 md 파일은 이미지를 <code>페이지이름/그림.png</code>처럼 상대 경로로 가리킵니다. md 파일만 다른 곳으로 옮기면 이미지 폴더와 연결이 끊깁니다. 압축 푼 폴더를 통째로 두고 그 안에서 여세요.</p>
+
+    <h2>5. 내보낸 문서를 다른 사람에게 줄 때</h2>
+    <p>MDnote의 <strong>내보내기 → PDF</strong>를 쓰면 노션 계정이 없는 사람에게도 같은 모양으로 전달할 수 있습니다. <strong>HTML</strong>로 내보내면 브라우저만 있으면 열리는 파일 하나가 됩니다.</p>
+
+    <div class="cta">
+      <p><strong>MDnote</strong>는 .md 파일을 더블클릭 한 번에 깔끔한 문서로 보여 주는 무료 프로그램입니다. 회원가입도, 서버도 없습니다.</p>
+      <a class="btn btn--primary" href="/#download">무료로 내려받기</a>
+      <a class="btn" href="/app/">설치 없이 브라우저에서 열기</a>
+    </div>
+    <div class="related"><strong>함께 읽기</strong><ul><li><a href="/guide/md-file-open.html">md 파일 여는 법 (윈도우·맥)</a></li><li><a href="/guide/md-to-pdf.html">md 파일을 PDF·워드로 바꾸는 법</a></li><li><a href="/guide/markdown-basics.html">마크다운 10분 문법</a></li></ul></div>
+  </main>
+  <div class="ad-slot" aria-label="광고"><!-- AdSense --><span>광고</span></div>
+  <footer class="footer"><span>© 2026 MDnote</span><a href="/privacy.html">개인정보처리방침</a><a href="https://github.com/steveoh555/mdnote" rel="noopener" target="_blank">GitHub</a></footer>
+</body>
+</html>

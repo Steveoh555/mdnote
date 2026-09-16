@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://mdnote.pages.dev/sitemap.xml
