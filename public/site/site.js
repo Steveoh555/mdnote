@@ -1,6 +1,6 @@
 // Fills the download buttons from the latest GitHub release, if one exists.
 // Falls back to the "coming soon" note when no release is published yet.
-const REPO = 'withyou-books/mdnote';
+const REPO = 'steveoh555/mdnote';
 
 const win = document.getElementById('dl-win');
 const mac = document.getElementById('dl-mac');

@@ -17,7 +17,7 @@ SignPath Foundation(https://signpath.org/apply)은 오픈소스 프로젝트에 
 
 **Project name:** MDnote
 
-**Repository:** https://github.com/<계정명>/mdnote
+**Repository:** https://github.com/steveoh555/mdnote
 
 **Website:** https://<배포 주소>
 
