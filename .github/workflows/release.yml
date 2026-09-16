@@ -1,0 +1,60 @@
+# Builds Windows (.exe/.msi) and macOS (.dmg, Apple Silicon + Intel) installers
+# and attaches them to a GitHub Release whenever a tag like v0.1.0 is pushed.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: ''
+          - os: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - os: macos-13
+            args: '--target x86_64-apple-darwin'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ contains(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'MDnote ${{ github.ref_name }}'
+          releaseBody: |
+            MDnote ${{ github.ref_name }}
+
+            - Windows: `*-setup.exe` (권장) 또는 `*.msi`
+            - macOS Apple Silicon: `*_aarch64.dmg`
+            - macOS Intel: `*_x64.dmg`
+
+            초기 버전은 코드 서명이 없어 설치 시 경고가 표시될 수 있습니다.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MDnote – 마크다운을 제대로 읽는 가장 간단한 방법</title>
+  <meta name="description" content="MDnote는 Claude 같은 AI가 만든 .md 파일을 깔끔하게 읽고 바로 고칠 수 있는 무료 Markdown 뷰어 겸 편집기입니다. Windows, Mac 설치형과 브라우저 버전을 제공합니다." />
+  <meta property="og:title" content="MDnote – 읽기 우선 Markdown 뷰어·편집기" />
+  <meta property="og:description" content="Claude가 만든 .md 파일을 깔끔하게 읽고, 필요할 때 바로 고치세요. 무료 · 설치형 · 오프라인." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/site/site.css" />
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="/">
+      <img src="/favicon.svg" alt="" width="28" height="28" />
+      <span>MDnote</span>
+    </a>
+    <nav class="nav__links">
+      <a href="#features">기능</a>
+      <a href="#download">다운로드</a>
+      <a href="#guide">사용법</a>
+      <a class="nav__cta" href="/app/">브라우저에서 사용</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero__text">
+        <h1>마크다운을 제대로 읽는<br />가장 간단한 방법</h1>
+        <p class="hero__sub">
+          Claude가 만든 <code>.md</code> 파일을 깔끔하게 읽고,<br />
+          필요할 때 바로 고치세요. 무료 · 설치형 · 오프라인.
+        </p>
+        <div class="hero__actions" id="download">
+          <a class="btn btn--primary" id="dl-win" href="#download" data-os="windows">Windows용 다운로드</a>
+          <a class="btn" id="dl-mac" href="#download" data-os="mac">Mac용 다운로드</a>
+          <a class="link" href="/app/">브라우저에서 바로 사용 →</a>
+        </div>
+        <p class="hero__note" id="dl-note">설치형은 준비 중입니다. 지금은 브라우저 버전을 사용해 보세요.</p>
+      </div>
+      <div class="hero__shot">
+        <img src="/site/screenshot-read.png" alt="MDnote 읽기 모드 화면" width="1280" height="820" loading="eager" />
+      </div>
+    </section>
+
+    <section class="features" id="features">
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><path d="M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M14 4v5h5M8 12h8M8 16h8"/></svg>
+        <h3>읽기 우선</h3>
+        <p>열면 바로 정돈된 문서가 보입니다. 표, 코드, 체크리스트가 깨지지 않습니다.</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <h3>폴더 목록</h3>
+        <p>프로젝트 폴더를 열면 모든 .md가 한눈에. 클릭해서 넘겨가며 읽으세요.</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="6" rx="1"/><rect x="14" y="3" width="7" height="6" rx="1"/><rect x="8.5" y="15" width="7" height="6" rx="1"/><path d="M6.5 9v3h11V9M12 12v3"/></svg>
+        <h3>다이어그램 렌더링</h3>
+        <p>Mermaid 순서도와 다이어그램도 그림으로 표시됩니다.</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M12.5 7.5l4 4"/></svg>
+        <h3>필요할 때만 편집</h3>
+        <p>읽기 · 편집 · 나란히 3가지 보기. 서식 툴바와 단축키, 찾기·바꾸기.</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+        <h3>HTML · PDF 내보내기</h3>
+        <p>같은 서식 그대로 HTML 파일로, 또는 인쇄해서 PDF로 저장합니다.</p>
+      </div>
+      <div class="feature">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
+        <h3>라이트 · 다크</h3>
+        <p>시스템 설정을 따르거나 직접 고릅니다. 눈이 편한 중성 톤.</p>
+      </div>
+    </section>
+
+    <section class="guide" id="guide">
+      <h2>사용법</h2>
+      <div class="guide__grid">
+        <article>
+          <h3>1. 파일 열기</h3>
+          <p>설치형에서는 <code>.md</code> 파일을 더블클릭하면 MDnote가 바로 열립니다. 브라우저 버전에서는 <kbd>Ctrl+O</kbd>를 누르거나 파일을 창 위로 끌어다 놓으세요.</p>
+        </article>
+        <article>
+          <h3>2. 폴더째 읽기</h3>
+          <p>왼쪽 <strong>폴더 열기</strong>를 누르면 폴더 안의 모든 Markdown 파일이 나열됩니다. Claude 프로젝트 폴더를 열어 두고 문서를 넘겨가며 읽기에 좋습니다.</p>
+        </article>
+        <article>
+          <h3>3. 고치기</h3>
+          <p>상단의 <strong>편집</strong> 또는 <strong>나란히</strong>를 누르면 편집창이 나타납니다. <kbd>Ctrl+B</kbd> 굵게, <kbd>Ctrl+I</kbd> 기울임, <kbd>Ctrl+K</kbd> 링크. 체크리스트는 읽기 모드에서 바로 클릭해 토글할 수 있습니다.</p>
+        </article>
+        <article>
+          <h3>4. 저장과 내보내기</h3>
+          <p><kbd>Ctrl+S</kbd>로 원본 파일에 저장합니다. 작성 중인 내용은 자동으로 임시 저장되어 창을 닫아도 복원됩니다. 오른쪽 위 <strong>내보내기</strong>에서 HTML 또는 PDF로 내보낼 수 있습니다.</p>
+        </article>
+      </div>
+      <details class="faq">
+        <summary>브라우저 버전과 설치형의 차이는 무엇인가요?</summary>
+        <p>브라우저 버전은 설치 없이 바로 쓸 수 있지만 폴더 열기와 원본 파일에 직접 저장하는 기능은 Chrome, Edge에서만 동작합니다. 설치형은 파일 더블클릭 연결, 오프라인 사용, 모든 브라우저 제약 없음이 장점입니다.</p>
+      </details>
+      <details class="faq">
+        <summary>내 문서가 어딘가로 전송되나요?</summary>
+        <p>아니요. MDnote는 서버가 없습니다. 문서는 사용자의 컴퓨터(브라우저) 안에서만 처리되며 외부로 전송되지 않습니다.</p>
+      </details>
+      <details class="faq">
+        <summary>설치할 때 경고가 뜹니다.</summary>
+        <p>초기 버전은 코드 서명 인증서 없이 배포되어 Windows SmartScreen이나 macOS Gatekeeper 경고가 나타날 수 있습니다. Windows에서는 "추가 정보 → 실행", macOS에서는 앱을 우클릭 → "열기"로 실행할 수 있습니다.</p>
+      </details>
+    </section>
+  </main>
+
+  <div class="ad-slot" aria-label="광고">
+    <!-- AdSense 코드가 이 자리에 들어갑니다. -->
+    <span>광고</span>
+  </div>
+
+  <footer class="footer">
+    <span>© 2026 MDnote</span>
+    <a href="/privacy.html">개인정보처리방침</a>
+    <a href="https://github.com/withyou-books/mdnote" rel="noopener" target="_blank">GitHub</a>
+  </footer>
+
+  <script type="module" src="/site/site.js"></script>
+</body>
+</html>

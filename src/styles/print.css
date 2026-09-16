@@ -1,0 +1,16 @@
+@media print {
+  @page { margin: 18mm 16mm; }
+  html, body, .app { height: auto !important; overflow: visible !important; background: #fff !important; }
+  :root { --bg: #fff; --text: #111; --text-muted: #555; --border: #ccc; --bg-code: #f4f4f4; }
+  .topbar, .fmt-toolbar, .sidebar, .outline, .statusbar, .search-panel, .menu, .toast,
+  .draft-banner, .pane--editor, .code__copy { display: none !important; }
+  .app { display: block !important; }
+  .body { display: block !important; }
+  .main { display: block !important; }
+  .pane--preview { display: block !important; overflow: visible !important; height: auto !important; }
+  .md { max-width: none !important; padding: 0 !important; font-size: 11.5pt; }
+  .md pre { white-space: pre-wrap; page-break-inside: avoid; }
+  .md h1, .md h2, .md h3 { page-break-after: avoid; }
+  .md .table-wrap, .md table, .md img { page-break-inside: avoid; }
+  .md a { color: inherit; border: 0; }
+}

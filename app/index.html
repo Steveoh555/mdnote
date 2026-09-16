@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>MDnote</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <div id="app" class="app" data-view="read">
+
+    <header class="topbar">
+      <div class="topbar__left">
+        <span class="file-name" id="file-name">untitled.md</span>
+        <span class="dirty-dot" id="dirty-dot" hidden aria-hidden="true"></span>
+        <button class="btn btn--small btn--primary" id="btn-save-quick" hidden data-i18n="action.save">Save</button>
+      </div>
+
+      <div class="topbar__center">
+        <div class="segmented" role="tablist" id="view-switch">
+          <button role="tab" data-view="read" data-i18n="view.read">Read</button>
+          <button role="tab" data-view="edit" data-i18n="view.edit">Edit</button>
+          <button role="tab" data-view="split" data-i18n="view.split">Split</button>
+        </div>
+      </div>
+
+      <div class="topbar__right">
+        <button class="icon-btn" id="btn-search" data-tip="search" aria-label="search">
+          <svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4.5 4.5"/></svg>
+        </button>
+        <div class="dropdown" id="export-dd">
+          <button class="label-btn" id="btn-export" aria-haspopup="menu"><span data-i18n="export.label">Export</span><svg viewBox="0 0 20 20"><path d="M6 8l4 4 4-4"/></svg></button>
+          <div class="menu menu--export" id="export-menu" role="menu" hidden>
+            <button role="menuitem" data-action="exportHtml"><span data-i18n="export.html">HTML file</span></button>
+            <button role="menuitem" data-action="exportPdf"><span data-i18n="export.pdf">PDF / Print</span><kbd>Ctrl+P</kbd></button>
+          </div>
+        </div>
+        <button class="icon-btn" id="btn-settings" data-tip="settings" aria-label="settings">
+          <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.4"/><path d="M8.4 2.5h3.2l.4 1.9a6 6 0 0 1 1.4.8l1.8-.6 1.6 2.8-1.4 1.3a6 6 0 0 1 0 1.6l1.4 1.3-1.6 2.8-1.8-.6a6 6 0 0 1-1.4.8l-.4 1.9H8.4l-.4-1.9a6 6 0 0 1-1.4-.8l-1.8.6-1.6-2.8 1.4-1.3a6 6 0 0 1 0-1.6L3.2 7.4l1.6-2.8 1.8.6a6 6 0 0 1 1.4-.8z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="fmt-toolbar" id="fmt-toolbar">
+      <button class="fmt-btn" data-fmt="undo" data-tip="fmt.undo">
+        <svg viewBox="0 0 20 20"><path d="M7 5L3.5 8.5 7 12"/><path d="M4 8.5h8a4 4 0 0 1 0 8H9"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="redo" data-tip="fmt.redo">
+        <svg viewBox="0 0 20 20"><path d="M13 5l3.5 3.5L13 12"/><path d="M16 8.5H8a4 4 0 0 0 0 8h3"/></svg>
+      </button>
+      <span class="fmt-sep"></span>
+      <button class="fmt-btn" data-fmt="bold" data-tip="fmt.bold"><b>B</b></button>
+      <button class="fmt-btn" data-fmt="italic" data-tip="fmt.italic"><i>I</i></button>
+      <button class="fmt-btn" data-fmt="strike" data-tip="fmt.strike"><s>S</s></button>
+      <span class="fmt-sep"></span>
+      <button class="fmt-btn" data-fmt="h1" data-tip="fmt.h1">H1</button>
+      <button class="fmt-btn" data-fmt="h2" data-tip="fmt.h2">H2</button>
+      <button class="fmt-btn" data-fmt="h3" data-tip="fmt.h3">H3</button>
+      <span class="fmt-sep"></span>
+      <button class="fmt-btn" data-fmt="ul" data-tip="fmt.ul">
+        <svg viewBox="0 0 20 20"><circle cx="4" cy="5.5" r="1.3" class="fill"/><circle cx="4" cy="10" r="1.3" class="fill"/><circle cx="4" cy="14.5" r="1.3" class="fill"/><path d="M8 5.5h9M8 10h9M8 14.5h9"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="ol" data-tip="fmt.ol">
+        <svg viewBox="0 0 20 20"><path d="M8 5.5h9M8 10h9M8 14.5h9"/><text x="2" y="7" font-size="5.5" class="fill" stroke="none">1</text><text x="2" y="11.7" font-size="5.5" class="fill" stroke="none">2</text><text x="2" y="16.3" font-size="5.5" class="fill" stroke="none">3</text></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="task" data-tip="fmt.task">
+        <svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M6.5 10l2.5 2.5 4.5-5"/></svg>
+      </button>
+      <span class="fmt-sep"></span>
+      <button class="fmt-btn" data-fmt="link" data-tip="fmt.link">
+        <svg viewBox="0 0 20 20"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.3-2.3a3 3 0 0 0-4.2-4.2L9.7 6.1"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0L5 10.8a3 3 0 0 0 4.2 4.2l1.1-1.1"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="image" data-tip="fmt.image">
+        <svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="1.5"/><circle cx="7.5" cy="8.5" r="1.3"/><path d="M3.5 14.5l4-4 3 3 2.5-2.5 3.5 3.5"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="code" data-tip="fmt.code">
+        <svg viewBox="0 0 20 20"><path d="M7 6l-4 4 4 4M13 6l4 4-4 4"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="codeblock" data-tip="fmt.codeblock">
+        <svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="1.5"/><path d="M8 8l-2 2 2 2M12 8l2 2-2 2"/></svg>
+      </button>
+      <span class="fmt-sep"></span>
+      <button class="fmt-btn" data-fmt="table" data-tip="fmt.table">
+        <svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="1"/><path d="M3 8.5h14M3 12.5h14M8 4v12M12.5 4v12"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="hr" data-tip="fmt.hr">
+        <svg viewBox="0 0 20 20"><path d="M3 10h14"/><path d="M6 5.5h8M6 14.5h8" stroke-dasharray="1.5 2"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="mermaid" data-tip="fmt.mermaid">
+        <svg viewBox="0 0 20 20"><rect x="2.5" y="3" width="6" height="4.5" rx="1"/><rect x="11.5" y="3" width="6" height="4.5" rx="1"/><rect x="7" y="12.5" width="6" height="4.5" rx="1"/><path d="M5.5 7.5v2.5h9V7.5M10 10v2.5"/></svg>
+      </button>
+      <button class="fmt-btn" data-fmt="quote" data-tip="fmt.quote">
+        <svg viewBox="0 0 20 20"><path d="M5 12.5c-1 0-1.7-.8-1.7-1.8 0-2.2 1.4-4 3.6-4.7l.4.9c-1.4.5-2.2 1.5-2.3 2.4h.6c1 0 1.7.7 1.7 1.6 0 .9-.9 1.6-2.3 1.6zm7.5 0c-1 0-1.7-.8-1.7-1.8 0-2.2 1.4-4 3.6-4.7l.4.9c-1.4.5-2.2 1.5-2.3 2.4h.6c1 0 1.7.7 1.7 1.6 0 .9-.9 1.6-2.3 1.6z" class="fill" stroke="none"/></svg>
+      </button>
+      <span class="fmt-spacer"></span>
+      <button class="btn btn--small btn--primary" id="btn-save" data-i18n="action.save">Save</button>
+      <button class="btn btn--small" id="btn-save-as" data-i18n="action.saveAs">Save as…</button>
+    </div>
+
+    <div class="draft-banner" id="draft-banner" hidden>
+      <span data-i18n="draft.found">A recovered draft was found.</span>
+      <button class="btn btn--small" id="draft-restore" data-i18n="draft.restore">Restore</button>
+      <button class="btn btn--small btn--ghost" id="draft-discard" data-i18n="draft.discard">Discard</button>
+    </div>
+
+    <div class="body">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar__actions">
+          <button class="side-btn" id="btn-open-file"><svg viewBox="0 0 20 20"><path d="M5 2.5h6.5L15.5 6.5V17a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5V3a.5.5 0 0 1 .5-.5z"/><path d="M11.5 2.5v4h4"/></svg><span data-i18n="sidebar.openFile">Open file…</span></button>
+          <button class="side-btn" id="btn-open-folder"><svg viewBox="0 0 20 20"><path d="M2.5 5.5A1.5 1.5 0 0 1 4 4h4l2 2h6a1.5 1.5 0 0 1 1.5 1.5V15A1.5 1.5 0 0 1 16 16.5H4A1.5 1.5 0 0 1 2.5 15z"/></svg><span data-i18n="sidebar.openFolder">Open folder…</span></button>
+          <button class="side-btn" id="btn-new-doc"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg><span data-i18n="sidebar.newDoc">New document</span></button>
+        </div>
+        <div class="sidebar__empty" id="sidebar-empty">
+          <p data-i18n="sidebar.emptyHint">Open a folder to browse its Markdown files.</p>
+          <p class="sidebar__note" id="sidebar-note" hidden data-i18n="sidebar.unsupported"></p>
+        </div>
+        <div class="sidebar__tree" id="sidebar-tree" hidden></div>
+      </aside>
+
+      <aside class="outline" id="outline">
+        <div class="outline__title" data-i18n="outline.title">Outline</div>
+        <nav class="outline__list" id="outline-list"></nav>
+      </aside>
+
+      <main class="main" id="main">
+        <div class="pane pane--editor" id="editor-pane"></div>
+        <div class="pane pane--preview" id="preview-pane">
+          <article class="md" id="preview"></article>
+        </div>
+      </main>
+
+    </div>
+
+    <footer class="statusbar">
+      <div class="statusbar__left" id="stats"></div>
+      <div class="statusbar__right" id="cursor-pos"></div>
+    </footer>
+
+    <div class="search-panel" id="search-panel" hidden>
+      <div class="search-row">
+        <input type="text" id="search-input" data-i18n-placeholder="search.find" placeholder="Find" spellcheck="false" />
+        <span class="search-count" id="search-count"></span>
+        <button class="icon-btn icon-btn--small" id="search-prev" data-tip="search.prev"><svg viewBox="0 0 20 20"><path d="M5 12l5-5 5 5"/></svg></button>
+        <button class="icon-btn icon-btn--small" id="search-next" data-tip="search.next"><svg viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg></button>
+        <button class="icon-btn icon-btn--small" id="search-close" data-tip="search.close"><svg viewBox="0 0 20 20"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      </div>
+      <div class="search-row" id="replace-row">
+        <input type="text" id="replace-input" data-i18n-placeholder="search.replace" placeholder="Replace" spellcheck="false" />
+        <button class="btn btn--small" id="replace-one" data-i18n="search.replaceOne">Replace</button>
+        <button class="btn btn--small" id="replace-all" data-i18n="search.replaceAll">All</button>
+      </div>
+    </div>
+
+    <dialog class="dialog" id="settings-dialog">
+      <form method="dialog">
+        <h2 data-i18n="settings.title">Settings</h2>
+        <label class="field">
+          <span data-i18n="settings.theme">Theme</span>
+          <select id="set-theme">
+            <option value="system" data-i18n="settings.themeSystem">System</option>
+            <option value="light" data-i18n="settings.themeLight">Light</option>
+            <option value="dark" data-i18n="settings.themeDark">Dark</option>
+          </select>
+        </label>
+        <label class="field">
+          <span data-i18n="settings.language">Language</span>
+          <select id="set-lang">
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <label class="field">
+          <span data-i18n="settings.fontSize">Reading font size</span>
+          <select id="set-font">
+            <option value="15">15px</option>
+            <option value="16">16px</option>
+            <option value="17">17px</option>
+            <option value="18">18px</option>
+          </select>
+        </label>
+        <label class="field">
+          <span data-i18n="settings.width">Content width</span>
+          <select id="set-width">
+            <option value="narrow" data-i18n="settings.widthNarrow">Narrow</option>
+            <option value="normal" data-i18n="settings.widthNormal">Normal</option>
+            <option value="wide" data-i18n="settings.widthWide">Wide</option>
+          </select>
+        </label>
+        <div class="field-group" data-i18n="settings.panels">Panels</div>
+        <label class="field field--check">
+          <span data-i18n="settings.panelOutline">Outline panel</span>
+          <input type="checkbox" id="set-outline" />
+        </label>
+        <div class="field-group" data-i18n="settings.help">Help</div>
+        <div class="field">
+          <span data-i18n="settings.guide">Markdown guide</span>
+          <button type="button" class="btn btn--small" id="btn-guide" data-i18n="settings.openGuide">Open</button>
+        </div>
+        <div class="field">
+          <span data-i18n="settings.version">Version</span>
+          <span class="dialog__hint" id="about-version"></span>
+        </div>
+        <p class="dialog__hint" id="about-shortcuts"></p>
+        <div class="dialog__actions">
+          <button class="btn btn--primary" value="close" data-i18n="settings.done">Done</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" hidden></div>
+  </div>
+
+  <script type="module" src="../src/main.js"></script>
+</body>
+</html>
