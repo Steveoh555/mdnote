@@ -19,7 +19,7 @@ SignPath Foundation(https://signpath.org/apply)은 오픈소스 프로젝트에 
 
 **Repository:** https://github.com/steveoh555/mdnote
 
-**Website:** https://mdnote.withyoubooks.com
+**Website:** https://mdnote.aiink.kr
 
 **License:** MIT
 

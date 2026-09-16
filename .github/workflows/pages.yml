@@ -1,5 +1,5 @@
 # Builds the landing site + browser editor and publishes them to GitHub Pages
-# (served at https://mdnote.withyoubooks.com once DNS points there).
+# (served at https://mdnote.aiink.kr once DNS points there).
 name: pages
 
 on:
