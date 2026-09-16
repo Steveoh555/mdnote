@@ -7,3 +7,4 @@ tauri-build.log
 .claude/
 design/*.png
 design/**/*.png
+src-tauri/gen/schemas
