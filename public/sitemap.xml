@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://mdnote.pages.dev/</loc></url>
-  <url><loc>https://mdnote.pages.dev/guide/</loc></url>
-  <url><loc>https://mdnote.pages.dev/privacy.html</loc></url>
-  <url><loc>https://mdnote.pages.dev/app/</loc></url>
-  <url><loc>https://mdnote.pages.dev/guide/md-file-open.html</loc></url>
-  <url><loc>https://mdnote.pages.dev/guide/chatgpt-md.html</loc></url>
-  <url><loc>https://mdnote.pages.dev/guide/markdown-basics.html</loc></url>
-  <url><loc>https://mdnote.pages.dev/guide/notion-export.html</loc></url>
-  <url><loc>https://mdnote.pages.dev/guide/md-to-pdf.html</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/guide/</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/privacy.html</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/app/</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/guide/md-file-open.html</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/guide/chatgpt-md.html</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/guide/markdown-basics.html</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/guide/notion-export.html</loc></url>
+  <url><loc>https://mdnote.withyoubooks.com/guide/md-to-pdf.html</loc></url>
 </urlset>
