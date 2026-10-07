@@ -373,3 +373,17 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
   color: var(--text-faint);
 }
 .field--check input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+
+/* ---------- font size popover ---------- */
+.font-glyph { font-size: 15px; font-weight: 600; line-height: 1; }
+.menu--font { top: 38px; right: 0; min-width: 210px; padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 8px; }
+.font-row { display: flex; align-items: center; justify-content: space-between; }
+.font-value { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text); }
+.menu--font input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+.font-reset { align-self: flex-start; padding: 0 6px; color: var(--text-muted); }
+.field__range { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.field__range input[type="range"] { width: 120px; accent-color: var(--accent); margin: 0; }
+
+/* ---------- sidebar save actions ---------- */
+.side-sep { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
+.side-btn kbd { margin-left: auto; font-size: 10.5px; color: var(--text-faint); }

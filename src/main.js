@@ -13,7 +13,7 @@ import { fs, initFs } from './fs/index.js';
 import { buildHtmlDocument } from './export.js';
 import welcomeText from './welcome.md?raw';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const $ = (id) => document.getElementById(id);
 
 const el = {
@@ -59,6 +59,16 @@ const el = {
   setTheme: $('set-theme'),
   setLang: $('set-lang'),
   setFont: $('set-font'),
+  setFontValue: $('set-font-value'),
+  btnFont: $('btn-font'),
+  fontMenu: $('font-menu'),
+  fontRange: $('font-range'),
+  fontValue: $('font-size-value'),
+  fontDec: $('font-dec'),
+  fontInc: $('font-inc'),
+  fontReset: $('font-reset'),
+  btnSideSave: $('btn-side-save'),
+  btnSideSaveAs: $('btn-side-save-as'),
   setWidth: $('set-width'),
   toast: $('toast'),
 };
@@ -101,6 +111,9 @@ function applySettings() {
   el.setTheme.value = settings.theme;
   el.setLang.value = settings.lang;
   el.setFont.value = settings.fontSize;
+  el.setFontValue.textContent = settings.fontSize;
+  el.fontRange.value = settings.fontSize;
+  el.fontValue.textContent = settings.fontSize;
   el.setWidth.value = settings.width;
   if (!state.name || state.key === 'new') updateFileName();
   updateStats();
@@ -611,7 +624,29 @@ el.btnGuide.addEventListener('click', () => { el.settingsDialog.close(); openTut
 
 el.setTheme.addEventListener('change', () => { settings.theme = el.setTheme.value; persistSettings(); applySettings(); render(); });
 el.setLang.addEventListener('change', () => { settings.lang = el.setLang.value; persistSettings(); applySettings(); render(); });
-el.setFont.addEventListener('change', () => { settings.fontSize = el.setFont.value; persistSettings(); applySettings(); });
+const FONT_MIN = 12, FONT_MAX = 30, FONT_DEFAULT = 16;
+function setFontSize(px) {
+  const n = Math.min(FONT_MAX, Math.max(FONT_MIN, Math.round(Number(px) || FONT_DEFAULT)));
+  settings.fontSize = String(n);
+  persistSettings();
+  applySettings();
+}
+el.setFont.addEventListener('input', () => setFontSize(el.setFont.value));
+el.fontRange.addEventListener('input', () => setFontSize(el.fontRange.value));
+el.fontDec.addEventListener('click', () => setFontSize(Number(settings.fontSize) - 1));
+el.fontInc.addEventListener('click', () => setFontSize(Number(settings.fontSize) + 1));
+el.fontReset.addEventListener('click', () => setFontSize(FONT_DEFAULT));
+
+function toggleFontMenu(force) {
+  const show = force ?? el.fontMenu.hidden;
+  el.fontMenu.hidden = !show;
+  el.btnFont.classList.toggle('active', show);
+  if (show) toggleMenu(false);
+}
+el.btnFont.addEventListener('click', () => toggleFontMenu());
+document.addEventListener('click', (e) => {
+  if (!el.fontMenu.hidden && !el.fontMenu.contains(e.target) && !el.btnFont.contains(e.target)) toggleFontMenu(false);
+});
 el.setWidth.addEventListener('change', () => { settings.width = el.setWidth.value; persistSettings(); applySettings(); });
 
 // ---------------------------------------------------------------- formatting
@@ -649,6 +684,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (!el.searchPanel.hidden) { closeSearch(); e.preventDefault(); }
     if (!el.exportMenu.hidden) toggleMenu(false);
+    if (!el.fontMenu.hidden) toggleFontMenu(false);
     return;
   }
   if (!mod) return;
@@ -660,6 +696,10 @@ window.addEventListener('keydown', (e) => {
     n: newDocument,
     f: openSearch,
     p: exportPdf,
+    '=': () => setFontSize(Number(settings.fontSize) + 1),
+    '+': () => setFontSize(Number(settings.fontSize) + 1),
+    '-': () => setFontSize(Number(settings.fontSize) - 1),
+    0: () => setFontSize(FONT_DEFAULT),
     1: () => setView('read'),
     2: () => setView('edit'),
     3: () => setView('split'),
@@ -693,6 +733,8 @@ el.btnSaveAs.addEventListener('click', saveFileAs);
 el.btnSaveQuick.addEventListener('click', saveFile);
 el.btnOpenFile.addEventListener('click', openFile);
 el.btnNewDoc.addEventListener('click', newDocument);
+el.btnSideSave.addEventListener('click', saveFile);
+el.btnSideSaveAs.addEventListener('click', saveFileAs);
 el.btnOpenFolder.addEventListener('click', openFolder);
 el.viewSwitch.addEventListener('click', (e) => {
   const b = e.target.closest('[data-view]');
