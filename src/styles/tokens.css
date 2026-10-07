@@ -20,6 +20,7 @@
   --link: #3a6ea5;
   --line-active: #f5f7fa;
   --selection: #cfe0f3;
+  --selection-synced: #f6d0d0;
   --match: #ffe9a8;
   --match-active: #ffc94d;
   --match-ring: #e3b84a;
@@ -57,6 +58,7 @@
   --link: #7fb0e8;
   --line-active: #2c2d32;
   --selection: #35507a;
+  --selection-synced: #6e3434;
   --match: #5a4a1e;
   --match-active: #8a6d1e;
   --match-ring: #a5842a;

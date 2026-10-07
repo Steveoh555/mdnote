@@ -409,3 +409,6 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 .font-group { display: flex; flex-direction: column; gap: 6px; }
 .font-group + .font-group { padding-top: 8px; border-top: 1px solid var(--border); }
 .font-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); }
+
+/* range mirrored from the preview selection (red so it reads as 'linked', not 'focused') */
+.cm-synced-sel { background: var(--selection-synced); border-radius: 2px; }

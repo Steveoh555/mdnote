@@ -1,7 +1,7 @@
-import { EditorState } from '@codemirror/state';
+import { EditorState, StateField, StateEffect } from '@codemirror/state';
 import {
   EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
-  drawSelection, dropCursor, rectangularSelection, crosshairCursor,
+  drawSelection, dropCursor, rectangularSelection, crosshairCursor, Decoration,
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab, undo, redo } from '@codemirror/commands';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -58,6 +58,22 @@ const editorTheme = EditorView.theme({
   '.cm-panels': { display: 'none' }, // we draw our own search panel
 });
 
+// Highlight for a range mirrored from the preview selection. Drawn as a mark decoration
+// so it stays visible while the editor is unfocused; cleared on any user interaction.
+const setSynced = StateEffect.define();
+const syncedMark = Decoration.mark({ class: 'cm-synced-sel' });
+const syncedField = StateField.define({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    deco = deco.map(tr.changes);
+    for (const e of tr.effects) {
+      if (e.is(setSynced)) deco = e.value ? Decoration.set([syncedMark.range(e.value.from, e.value.to)]) : Decoration.none;
+    }
+    return deco;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
 export function createEditor(parent, { doc, onChange, onCursor }) {
   const state = EditorState.create({
     doc,
@@ -77,6 +93,11 @@ export function createEditor(parent, { doc, onChange, onCursor }) {
       syntaxHighlighting(mdHighlight),
       editorTheme,
       search({ top: true }),
+      syncedField,
+      EditorView.domEventHandlers({
+        mousedown: (e, v) => { v.dispatch({ effects: setSynced.of(null) }); },
+        keydown: (e, v) => { v.dispatch({ effects: setSynced.of(null) }); },
+      }),
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
       EditorView.updateListener.of((u) => {
         if (u.docChanged) onChange(u.state.doc.toString());
@@ -191,9 +212,10 @@ export function createEditor(parent, { doc, onChange, onCursor }) {
       if (pos === -1) return false;
       const a = from + idx[pos];
       const b = from + idx[pos + wanted.length - 1] + 1;
-      view.dispatch({ selection: { anchor: a, head: b }, scrollIntoView: true });
+      view.dispatch({ selection: { anchor: a, head: b }, effects: setSynced.of({ from: a, to: b }), scrollIntoView: true });
       return true;
     },
+    clearSynced() { view.dispatch({ effects: setSynced.of(null) }); },
     onScroll(fn) { view.scrollDOM.addEventListener('scroll', fn, { passive: true }); },
   };
   return api;

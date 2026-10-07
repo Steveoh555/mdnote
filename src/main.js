@@ -13,7 +13,7 @@ import { fs, initFs } from './fs/index.js';
 import { buildHtmlDocument } from './export.js';
 import welcomeText from './welcome.md?raw';
 
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 const $ = (id) => document.getElementById(id);
 
 const el = {
@@ -884,7 +884,7 @@ el.previewPane.addEventListener('scroll', syncEditorToPreview, { passive: true }
 function syncSelectionToEditor() {
   if (!isSplit()) return;
   const sel = window.getSelection();
-  if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+  if (!sel || sel.isCollapsed || !sel.rangeCount) { editor.clearSynced(); return; }
   const range = sel.getRangeAt(0);
   if (!el.preview.contains(range.commonAncestorContainer)) return;
   const text = sel.toString().trim();
