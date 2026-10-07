@@ -5,6 +5,8 @@ const defaults = {
   theme: 'system',
   lang: navigator.language?.startsWith('ko') ? 'ko' : 'en',
   fontSize: '16',
+  editorFontSize: '14',
+  splitRatio: 0.5,
   width: 'normal',
   view: 'read',
   outline: true,

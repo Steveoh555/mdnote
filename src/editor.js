@@ -155,6 +155,46 @@ export function createEditor(parent, { doc, onChange, onCursor }) {
     findPrev: () => findPrevious(view),
     replaceOne: () => replaceNext(view),
     replaceAll: () => replaceAll(view),
+
+    // --- split-view sync helpers ----------------------------------------
+    // 0-based source line currently at the top of the editor viewport, with
+    // the fraction of that line already scrolled past.
+    topLine() {
+      const top = view.scrollDOM.scrollTop;
+      const block = view.lineBlockAtHeight(top);
+      const line = view.state.doc.lineAt(block.from);
+      const frac = block.height ? Math.min(1, Math.max(0, (top - block.top) / block.height)) : 0;
+      return { line: line.number - 1, frac };
+    },
+    scrollToLine(line0, frac = 0) {
+      const n = Math.min(view.state.doc.lines, Math.max(1, line0 + 1));
+      const l = view.state.doc.line(n);
+      const block = view.lineBlockAt(l.from);
+      view.scrollDOM.scrollTop = Math.max(0, block.top + block.height * frac);
+    },
+    // Select `text` (as it appears in the rendered preview) in the source, searching from
+    // 0-based line `line0`. Matching ignores everything except letters and digits so that
+    // markdown punctuation (**, `, [](), #) and whitespace differences do not matter.
+    selectText(text, line0) {
+      const wanted = text.replace(/[^\p{L}\p{N}]/gu, '');
+      if (!wanted) return false;
+      const doc = view.state.doc;
+      const from = doc.line(Math.min(doc.lines, Math.max(1, line0 + 1))).from;
+      const hay = doc.sliceString(from);
+      const chars = [];
+      const idx = [];
+      for (let i = 0; i < hay.length; i++) {
+        const ch = hay[i];
+        if (/[\p{L}\p{N}]/u.test(ch)) { chars.push(ch); idx.push(i); }
+      }
+      const pos = chars.join('').indexOf(wanted);
+      if (pos === -1) return false;
+      const a = from + idx[pos];
+      const b = from + idx[pos + wanted.length - 1] + 1;
+      view.dispatch({ selection: { anchor: a, head: b }, scrollIntoView: true });
+      return true;
+    },
+    onScroll(fn) { view.scrollDOM.addEventListener('scroll', fn, { passive: true }); },
   };
   return api;
 }

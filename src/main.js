@@ -13,7 +13,7 @@ import { fs, initFs } from './fs/index.js';
 import { buildHtmlDocument } from './export.js';
 import welcomeText from './welcome.md?raw';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const $ = (id) => document.getElementById(id);
 
 const el = {
@@ -60,6 +60,16 @@ const el = {
   setLang: $('set-lang'),
   setFont: $('set-font'),
   setFontValue: $('set-font-value'),
+  setEfont: $('set-efont'),
+  setEfontValue: $('set-efont-value'),
+  efontRange: $('efont-range'),
+  efontValue: $('efont-size-value'),
+  efontDec: $('efont-dec'),
+  efontInc: $('efont-inc'),
+  fontGroupRead: $('font-group-read'),
+  fontGroupEdit: $('font-group-edit'),
+  splitter: $('splitter'),
+  main: $('main'),
   btnFont: $('btn-font'),
   fontMenu: $('font-menu'),
   fontRange: $('font-range'),
@@ -101,6 +111,8 @@ function isDark() {
 function applySettings() {
   document.documentElement.dataset.theme = isDark() ? 'dark' : 'light';
   document.documentElement.style.setProperty('--reading-font-size', settings.fontSize + 'px');
+  document.documentElement.style.setProperty('--editor-font-size', settings.editorFontSize + 'px');
+  document.documentElement.style.setProperty('--split-ratio', String(settings.splitRatio));
   document.documentElement.style.setProperty(
     '--content-width',
     { narrow: '620px', normal: '720px', wide: '960px' }[settings.width] || '720px',
@@ -114,6 +126,10 @@ function applySettings() {
   el.setFontValue.textContent = settings.fontSize;
   el.fontRange.value = settings.fontSize;
   el.fontValue.textContent = settings.fontSize;
+  el.setEfont.value = settings.editorFontSize;
+  el.setEfontValue.textContent = settings.editorFontSize;
+  el.efontRange.value = settings.editorFontSize;
+  el.efontValue.textContent = settings.editorFontSize;
   el.setWidth.value = settings.width;
   if (!state.name || state.key === 'new') updateFileName();
   updateStats();
@@ -140,6 +156,8 @@ function setView(view) {
   persistSettings();
   updateCursorVisibility();
   updateFileName();
+  el.fontGroupRead.hidden = view === 'edit';
+  el.fontGroupEdit.hidden = view === 'read';
   if (view !== 'read') requestAnimationFrame(() => editor.focus());
   if (!el.searchPanel.hidden) runSearch();
 }
@@ -635,7 +653,23 @@ el.setFont.addEventListener('input', () => setFontSize(el.setFont.value));
 el.fontRange.addEventListener('input', () => setFontSize(el.fontRange.value));
 el.fontDec.addEventListener('click', () => setFontSize(Number(settings.fontSize) - 1));
 el.fontInc.addEventListener('click', () => setFontSize(Number(settings.fontSize) + 1));
-el.fontReset.addEventListener('click', () => setFontSize(FONT_DEFAULT));
+const EFONT_MIN = 10, EFONT_DEFAULT = 14;
+function setEditorFontSize(px) {
+  const n = Math.min(FONT_MAX, Math.max(EFONT_MIN, Math.round(Number(px) || EFONT_DEFAULT)));
+  settings.editorFontSize = String(n);
+  persistSettings();
+  applySettings();
+}
+el.setEfont.addEventListener('input', () => setEditorFontSize(el.setEfont.value));
+el.efontRange.addEventListener('input', () => setEditorFontSize(el.efontRange.value));
+el.efontDec.addEventListener('click', () => setEditorFontSize(Number(settings.editorFontSize) - 1));
+el.efontInc.addEventListener('click', () => setEditorFontSize(Number(settings.editorFontSize) + 1));
+el.fontReset.addEventListener('click', () => { setFontSize(FONT_DEFAULT); setEditorFontSize(EFONT_DEFAULT); });
+// Ctrl+= / Ctrl+- act on the pane that matches the current view (editor in edit mode, reading otherwise).
+function bumpFont(delta) {
+  if (el.app.dataset.view === 'edit') setEditorFontSize(Number(settings.editorFontSize) + delta);
+  else setFontSize(Number(settings.fontSize) + delta);
+}
 
 function toggleFontMenu(force) {
   const show = force ?? el.fontMenu.hidden;
@@ -696,10 +730,10 @@ window.addEventListener('keydown', (e) => {
     n: newDocument,
     f: openSearch,
     p: exportPdf,
-    '=': () => setFontSize(Number(settings.fontSize) + 1),
-    '+': () => setFontSize(Number(settings.fontSize) + 1),
-    '-': () => setFontSize(Number(settings.fontSize) - 1),
-    0: () => setFontSize(FONT_DEFAULT),
+    '=': () => bumpFont(1),
+    '+': () => bumpFont(1),
+    '-': () => bumpFont(-1),
+    0: () => { setFontSize(FONT_DEFAULT); setEditorFontSize(EFONT_DEFAULT); },
     1: () => setView('read'),
     2: () => setView('edit'),
     3: () => setView('split'),
@@ -797,6 +831,105 @@ function toast(msg) {
   toastTimer = setTimeout(() => (el.toast.hidden = true), 2400);
 }
 
+// ---------------------------------------------------------------- split view: scroll + selection sync
+let syncLock = 0;
+const isSplit = () => el.app.dataset.view === 'split';
+
+function lineBlocks() {
+  return [...el.preview.querySelectorAll('[data-line]')].map((n) => {
+    const [a, b] = n.dataset.line.split(',').map(Number);
+    return { el: n, start: a, end: b };
+  });
+}
+
+// Preview scrolled -> move the editor to the same source line.
+function syncEditorToPreview() {
+  if (!isSplit() || syncLock) return;
+  const blocks = lineBlocks();
+  if (!blocks.length) return;
+  const paneTop = el.previewPane.getBoundingClientRect().top;
+  let current = blocks[0];
+  for (const b of blocks) {
+    const r = b.el.getBoundingClientRect();
+    if (r.top - paneTop <= 1) current = b; else break;
+  }
+  const r = current.el.getBoundingClientRect();
+  const frac = r.height > 0 ? Math.min(1, Math.max(0, (paneTop - r.top) / r.height)) : 0;
+  const span = Math.max(1, current.end - current.start);
+  syncLock++;
+  editor.scrollToLine(current.start + Math.floor(frac * span), (frac * span) % 1);
+  setTimeout(() => syncLock--, 60);
+}
+
+// Editor scrolled -> move the preview to the block containing that source line.
+function syncPreviewToEditor() {
+  if (!isSplit() || syncLock) return;
+  const { line, frac } = editor.topLine();
+  const blocks = lineBlocks();
+  if (!blocks.length) return;
+  let target = blocks[0];
+  for (const b of blocks) { if (b.start <= line) target = b; else break; }
+  const span = Math.max(1, target.end - target.start);
+  const within = Math.min(1, Math.max(0, (line - target.start + frac) / span));
+  const paneRect = el.previewPane.getBoundingClientRect();
+  const r = target.el.getBoundingClientRect();
+  syncLock++;
+  el.previewPane.scrollTop += (r.top - paneRect.top) + r.height * within;
+  setTimeout(() => syncLock--, 60);
+}
+
+el.previewPane.addEventListener('scroll', syncEditorToPreview, { passive: true });
+
+// Selecting text in the preview selects the same text in the editor.
+function syncSelectionToEditor() {
+  if (!isSplit()) return;
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if (!el.preview.contains(range.commonAncestorContainer)) return;
+  const text = sel.toString().trim();
+  if (!text) return;
+  let node = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
+  const block = node?.closest('[data-line]');
+  const line = block ? Number(block.dataset.line.split(',')[0]) : 0;
+  syncLock++;
+  editor.selectText(text, line);
+  setTimeout(() => syncLock--, 60);
+}
+el.preview.addEventListener('mouseup', () => setTimeout(syncSelectionToEditor, 0));
+el.preview.addEventListener('keyup', (e) => { if (e.shiftKey) syncSelectionToEditor(); });
+
+// Draggable divider between editor and preview (kept between 25% and 75%).
+(function initSplitter() {
+  const MIN = 0.25, MAX = 0.75;
+  let dragging = false;
+  const apply = (ratio) => {
+    settings.splitRatio = Math.min(MAX, Math.max(MIN, ratio));
+    document.documentElement.style.setProperty('--split-ratio', String(settings.splitRatio));
+  };
+  el.splitter.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    try { el.splitter.setPointerCapture(e.pointerId); } catch { /* synthetic event */ }
+    el.app.classList.add('resizing');
+    e.preventDefault();
+  });
+  el.splitter.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const r = el.main.getBoundingClientRect();
+    apply((e.clientX - r.left) / r.width);
+  });
+  const stop = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    try { el.splitter.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+    el.app.classList.remove('resizing');
+    persistSettings();
+  };
+  el.splitter.addEventListener('pointerup', stop);
+  el.splitter.addEventListener('pointercancel', stop);
+  el.splitter.addEventListener('dblclick', () => { apply(0.5); persistSettings(); });
+})();
+
 // ---------------------------------------------------------------- boot
 async function boot() {
   await initFs();
@@ -807,6 +940,8 @@ async function boot() {
       if (el.app.dataset.view !== 'read') el.cursorPos.textContent = t('stats.pos', { l, c });
     },
   });
+  editor.onScroll(syncPreviewToEditor);
+  if (import.meta.env.DEV) window.__mdnote = { editor, syncEditorToPreview, syncPreviewToEditor, syncSelectionToEditor, lineBlocks };
   applySettings();
   if (!fs.capabilities.folders) el.sidebarNote.hidden = false;
   setView(settings.view || 'read');

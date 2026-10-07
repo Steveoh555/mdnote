@@ -152,9 +152,26 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 }
 .pane { flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; position: relative; }
 .pane--editor { display: none; }
+.splitter { display: none; }
 .app[data-view="edit"] .pane--editor { display: block; }
 .app[data-view="edit"] .pane--preview { display: none; }
-.app[data-view="split"] .pane--editor { display: block; border-right: 1px solid var(--border); }
+.app[data-view="split"] .pane--editor { display: block; flex: 0 0 calc(var(--split-ratio, 0.5) * 100%); }
+.app[data-view="split"] .pane--preview { flex: 1 1 0; }
+.app[data-view="split"] .splitter {
+  display: block;
+  flex: 0 0 7px;
+  margin: 0 -3px;
+  cursor: col-resize;
+  position: relative; z-index: 3;
+  background: transparent;
+}
+.app[data-view="split"] .splitter::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px;
+  background: var(--border);
+}
+.app[data-view="split"] .splitter:hover::before, .app.resizing .splitter::before { background: var(--accent); width: 2px; left: 2.5px; }
+.app.resizing { cursor: col-resize; user-select: none; }
+.app.resizing .pane { pointer-events: none; }
 .pane--editor .cm-editor { height: 100%; }
 
 .md#preview {
@@ -387,3 +404,8 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 /* ---------- sidebar save actions ---------- */
 .side-sep { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
 .side-btn kbd { margin-left: auto; font-size: 10.5px; color: var(--text-faint); }
+
+/* ---------- font popover: two groups ---------- */
+.font-group { display: flex; flex-direction: column; gap: 6px; }
+.font-group + .font-group { padding-top: 8px; border-top: 1px solid var(--border); }
+.font-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); }

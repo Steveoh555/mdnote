@@ -82,9 +82,29 @@ md.renderer.rules.link_open = (tokens, idx, opts, env, self) => {
   return defaultLinkOpen(tokens, idx, opts, env, self);
 };
 
+// Fenced code: keep the data-line attribute on the <pre>.
+const defaultFence = md.renderer.rules.fence;
+md.renderer.rules.fence = (tokens, idx, opts, env, self) => {
+  const html = defaultFence(tokens, idx, opts, env, self);
+  const line = tokens[idx].attrGet('data-line');
+  return line ? html.replace(/^<pre/, `<pre data-line="${line}"`) : html;
+};
+
 // Tables scroll horizontally inside a wrapper.
 md.renderer.rules.table_open = () => '<div class="table-wrap"><table>';
 md.renderer.rules.table_close = () => '</table></div>';
+
+// Source-line mapping: every block element carries data-line="<start>,<end>" (0-based)
+// so the split view can sync scrolling and selection with the editor.
+md.core.ruler.push('source_lines', (state) => {
+  for (const tok of state.tokens) {
+    if (tok.map && tok.nesting === 1 && tok.type !== 'inline') {
+      tok.attrSet('data-line', tok.map[0] + ',' + tok.map[1]);
+    } else if (tok.map && tok.type === 'fence') {
+      tok.attrSet('data-line', tok.map[0] + ',' + tok.map[1]);
+    }
+  }
+});
 
 export function renderMarkdown(text) {
   return md.render(text);

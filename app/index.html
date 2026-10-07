@@ -32,13 +32,25 @@
         <div class="dropdown" id="font-dd">
           <button class="label-btn" id="btn-font" aria-haspopup="dialog" data-tip="fontSize"><span class="font-glyph">가</span><svg viewBox="0 0 20 20"><path d="M6 8l4 4 4-4"/></svg></button>
           <div class="menu menu--font" id="font-menu" hidden>
-            <div class="font-row">
-              <button class="icon-btn icon-btn--small" id="font-dec" aria-label="smaller"><svg viewBox="0 0 20 20"><path d="M5 10h10"/></svg></button>
-              <span class="font-value"><span id="font-size-value">16</span>px</span>
-              <button class="icon-btn icon-btn--small" id="font-inc" aria-label="larger"><svg viewBox="0 0 20 20"><path d="M10 5v10M5 10h10"/></svg></button>
+            <div class="font-group" id="font-group-read">
+              <div class="font-label" data-i18n="font.read">Reading</div>
+              <div class="font-row">
+                <button class="icon-btn icon-btn--small" id="font-dec" aria-label="smaller"><svg viewBox="0 0 20 20"><path d="M5 10h10"/></svg></button>
+                <span class="font-value"><span id="font-size-value">16</span>px</span>
+                <button class="icon-btn icon-btn--small" id="font-inc" aria-label="larger"><svg viewBox="0 0 20 20"><path d="M10 5v10M5 10h10"/></svg></button>
+              </div>
+              <input type="range" id="font-range" min="12" max="30" step="1" />
             </div>
-            <input type="range" id="font-range" min="12" max="30" step="1" />
-            <button class="btn btn--small btn--ghost font-reset" id="font-reset" data-i18n="font.reset">Reset to 16px</button>
+            <div class="font-group" id="font-group-edit">
+              <div class="font-label" data-i18n="font.edit">Editor</div>
+              <div class="font-row">
+                <button class="icon-btn icon-btn--small" id="efont-dec" aria-label="smaller"><svg viewBox="0 0 20 20"><path d="M5 10h10"/></svg></button>
+                <span class="font-value"><span id="efont-size-value">14</span>px</span>
+                <button class="icon-btn icon-btn--small" id="efont-inc" aria-label="larger"><svg viewBox="0 0 20 20"><path d="M10 5v10M5 10h10"/></svg></button>
+              </div>
+              <input type="range" id="efont-range" min="10" max="30" step="1" />
+            </div>
+            <button class="btn btn--small btn--ghost font-reset" id="font-reset" data-i18n="font.reset">Reset</button>
           </div>
         </div>
         <div class="dropdown" id="export-dd">
@@ -140,6 +152,7 @@
 
       <main class="main" id="main">
         <div class="pane pane--editor" id="editor-pane"></div>
+        <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" title="드래그해서 비율 조정 · 더블클릭 시 가운데"></div>
         <div class="pane pane--preview" id="preview-pane">
           <article class="md" id="preview"></article>
         </div>
@@ -188,6 +201,10 @@
         <label class="field">
           <span data-i18n="settings.fontSize">Reading font size</span>
           <span class="field__range"><input type="range" id="set-font" min="12" max="30" step="1" /><span id="set-font-value">16</span>px</span>
+        </label>
+        <label class="field">
+          <span data-i18n="settings.editorFontSize">Editor font size</span>
+          <span class="field__range"><input type="range" id="set-efont" min="10" max="30" step="1" /><span id="set-efont-value">14</span>px</span>
         </label>
         <label class="field">
           <span data-i18n="settings.width">Content width</span>
