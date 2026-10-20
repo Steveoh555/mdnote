@@ -1,7 +1,18 @@
 @media print {
   @page { margin: 18mm 16mm; }
   html, body, .app { height: auto !important; overflow: visible !important; background: #fff !important; }
-  :root { --bg: #fff; --text: #111; --text-muted: #555; --border: #ccc; --bg-code: #f4f4f4; }
+  /* Paper is always white: these beat :root[data-theme="dark"] by specificity. */
+  :root, :root[data-theme="dark"], :root[data-theme="light"] {
+    --bg: #fff; --bg-chrome: #f4f4f4; --bg-code: #f4f4f4; --bg-elevated: #fff;
+    --text: #111; --text-muted: #555; --text-faint: #888;
+    --border: #ccc; --border-strong: #aaa; --table-head: #f0f0f0; --quote-border: #bbb;
+    --link: #1f5fa8; --accent: #1f5fa8; --accent-fg: #fff; --match: transparent; --match-active: transparent;
+    --code-keyword: #1f5fa8; --code-string: #2e7d4f; --code-comment: #777; --code-number: #b35c00;
+    --code-title: #111; --code-attr: #2e7d4f; --code-builtin: #1f5fa8;
+  }
+  .md .table-wrap { overflow: visible !important; }
+  .md mark { background: transparent; outline: 0; }
+  .md .front-matter[open] summary, .md .front-matter { break-inside: avoid; }
   .topbar, .fmt-toolbar, .sidebar, .outline, .statusbar, .search-panel, .menu, .toast,
   .draft-banner, .pane--editor, .code__copy { display: none !important; }
   .app { display: block !important; }

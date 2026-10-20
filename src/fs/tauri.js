@@ -3,9 +3,9 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { readFile, writeFile, readDir, stat } from '@tauri-apps/plugin-fs';
 import { decodeBytes, encodeText } from './encoding.js';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { join, basename } from '@tauri-apps/api/path';
+import { join, basename, dirname } from '@tauri-apps/api/path';
 
 const MD_FILTER = [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdx', 'txt'] }];
 const MD_RE = /\.(md|markdown|mdx)$/i;
@@ -25,7 +25,22 @@ async function fileMtime(path) {
 async function docFromPath(path) {
   await allowPath(path);
   const { text, encoding, bom } = decodeBytes(await readFile(path));
-  return { name: await basename(path), text, ref: { kind: 'path', path }, key: 'p:' + path, encoding, bom, mtime: await fileMtime(path) };
+  return { name: await basename(path), text, ref: { kind: 'path', path }, key: 'p:' + path, encoding, bom, mtime: await fileMtime(path), dir: await dirname(path) };
+}
+
+export function assetUrl(absPath) { return convertFileSrc(absPath); }
+
+// Join a document folder and a relative path without touching the disk (sync, for rendering).
+export function resolvePath(dir, rel) {
+  const sep = dir.includes('\\') ? '\\' : '/';
+  if (/^([a-zA-Z]:[\\/]|[\\/])/.test(rel)) return rel;
+  const parts = dir.split(/[\\/]/);
+  for (const p of rel.split(/[\\/]/)) {
+    if (!p || p === '.') continue;
+    if (p === '..') { if (parts.length > 1) parts.pop(); continue; }
+    parts.push(p);
+  }
+  return parts.join(sep);
 }
 
 export async function mtime(ref) {

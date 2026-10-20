@@ -25,6 +25,38 @@ const md = new MarkdownIt({
   },
 });
 
+// --- Front matter: "---\nkey: value\n---" at the very top ------------------
+md.block.ruler.before('hr', 'front_matter', (state, startLine, endLine, silent) => {
+  if (startLine !== 0) return false;
+  const lineText = (n) => state.src.slice(state.bMarks[n] + state.tShift[n], state.eMarks[n]);
+  if (lineText(0).trim() !== '---') return false;
+  let close = -1;
+  for (let n = 1; n < endLine; n++) {
+    const t = lineText(n).trim();
+    if (t === '---' || t === '...') { close = n; break; }
+  }
+  if (close === -1) return false;
+  if (silent) return true;
+  const token = state.push('front_matter', '', 0);
+  token.content = state.src.slice(state.bMarks[1], state.eMarks[close - 1]);
+  token.map = [0, close + 1];
+  token.block = true;
+  state.line = close + 1;
+  return true;
+});
+
+md.renderer.rules.front_matter = (tokens, idx) => {
+  const body = tokens[idx].content;
+  const rows = body.split('\n').map((l) => /^([A-Za-z0-9_\-.]+)\s*:\s*(.*)$/.exec(l)).filter(Boolean);
+  const line = tokens[idx].attrGet('data-line');
+  const attr = line ? ` data-line="${line}"` : '';
+  if (rows.length && rows.length >= body.split('\n').filter((l) => l.trim()).length * 0.6) {
+    const trs = rows.map(([, k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('');
+    return `<details class="front-matter"${attr}><summary>${escapeHtml('속성')}</summary><table>${trs}</table></details>\n`;
+  }
+  return `<details class="front-matter"${attr}><summary>${escapeHtml('속성')}</summary><pre><code>${escapeHtml(body)}</code></pre></details>\n`;
+};
+
 // --- Task lists: "- [ ] item" / "- [x] item" -------------------------------
 md.core.ruler.after('inline', 'task_lists', (state) => {
   const tokens = state.tokens;
@@ -75,11 +107,27 @@ md.core.ruler.push('heading_ids', (state) => {
 const defaultLinkOpen = md.renderer.rules.link_open || ((tokens, idx, opts, env, self) => self.renderToken(tokens, idx, opts));
 md.renderer.rules.link_open = (tokens, idx, opts, env, self) => {
   const href = tokens[idx].attrGet('href') || '';
+  if (href.startsWith('#') && !href.startsWith('#sec-')) {
+    let frag = href.slice(1);
+    try { frag = decodeURIComponent(frag); } catch { /* keep as is */ }
+    tokens[idx].attrSet('href', '#sec-' + slugify(frag));
+  }
   if (/^https?:\/\//i.test(href)) {
     tokens[idx].attrSet('target', '_blank');
     tokens[idx].attrSet('rel', 'noopener noreferrer');
   }
   return defaultLinkOpen(tokens, idx, opts, env, self);
+};
+
+// Images: let the host resolve relative paths (desktop serves files next to the document).
+const defaultImage = md.renderer.rules.image;
+md.renderer.rules.image = (tokens, idx, opts, env, self) => {
+  const src = tokens[idx].attrGet('src') || '';
+  if (env?.resolveImage && src && !/^(https?:|data:|blob:|asset:|\/\/|#)/i.test(src)) {
+    const resolved = env.resolveImage(src);
+    if (resolved) tokens[idx].attrSet('src', resolved);
+  }
+  return defaultImage(tokens, idx, opts, env, self);
 };
 
 // Fenced code: keep the data-line attribute on the <pre>.
@@ -100,14 +148,14 @@ md.core.ruler.push('source_lines', (state) => {
   for (const tok of state.tokens) {
     if (tok.map && tok.nesting === 1 && tok.type !== 'inline') {
       tok.attrSet('data-line', tok.map[0] + ',' + tok.map[1]);
-    } else if (tok.map && tok.type === 'fence') {
+    } else if (tok.map && (tok.type === 'fence' || tok.type === 'front_matter')) {
       tok.attrSet('data-line', tok.map[0] + ',' + tok.map[1]);
     }
   }
 });
 
-export function renderMarkdown(text) {
-  return md.render(text);
+export function renderMarkdown(text, env = {}) {
+  return md.render(text, env);
 }
 
 let mermaidModule = null;

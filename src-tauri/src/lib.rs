@@ -19,6 +19,15 @@ fn allow<R: Runtime>(app: &AppHandle<R>, path: &str, recursive: bool) {
     if let Err(e) = r {
         eprintln!("fs scope: {e}");
     }
+    // Images referenced relatively from a document live next to it: let the asset
+    // protocol (read-only, webview display only) serve that folder.
+    let assets = app.asset_protocol_scope();
+    let dir = if recursive { Some(std::path::PathBuf::from(path)) } else { std::path::Path::new(path).parent().map(|p| p.to_path_buf()) };
+    if let Some(d) = dir {
+        if let Err(e) = assets.allow_directory(&d, true) {
+            eprintln!("asset scope: {e}");
+        }
+    }
 }
 
 #[tauri::command]

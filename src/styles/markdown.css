@@ -154,3 +154,19 @@
 .hljs-deletion { color: #c0392b; }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 700; }
+
+/* YAML front matter, collapsed by default */
+.md .front-matter {
+  margin: 0 0 1.4em;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-chrome);
+  font-size: 0.86em;
+}
+.md .front-matter summary { padding: 0.45em 0.9em; cursor: pointer; color: var(--text-muted); user-select: none; }
+.md .front-matter[open] summary { border-bottom: 1px solid var(--border); }
+.md .front-matter table { font-size: 1em; margin: 0; }
+.md .front-matter th, .md .front-matter td { border: 0; border-top: 1px solid var(--border); padding: 0.35em 0.9em; }
+.md .front-matter th { width: 9em; color: var(--text-muted); font-weight: 500; background: transparent; }
+.md .front-matter tr:first-child th, .md .front-matter tr:first-child td { border-top: 0; }
+.md .front-matter pre { margin: 0; border: 0; border-radius: 0 0 6px 6px; }

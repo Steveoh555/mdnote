@@ -17,7 +17,7 @@ if (import.meta.env.PROD && window.top !== window.self) {
   try { window.top.location = window.location.href; } catch { document.documentElement.hidden = true; }
 }
 
-const VERSION = '0.4.0';
+const VERSION = '0.4.1';
 const $ = (id) => document.getElementById(id);
 
 const el = {
@@ -107,6 +107,7 @@ const state = {
   bom: false,
   mtime: null,
   extIgnored: false,
+  dir: null,
 };
 
 let editor;
@@ -169,6 +170,7 @@ function setView(view) {
   updateFileName();
   el.fontGroupRead.hidden = view === 'edit';
   el.fontGroupEdit.hidden = view === 'read';
+  if (mermaidPending && view !== 'edit') setTimeout(() => renderDiagrams(), 0);
   if (view !== 'read') requestAnimationFrame(() => editor.focus());
   if (!el.searchPanel.hidden) runSearch();
 }
@@ -186,7 +188,8 @@ function updateFileName() {
   el.btnSaveQuick.hidden = !(state.dirty && el.app.dataset.view === 'read');
 }
 
-function setDocument({ name, text, ref, key, encoding = 'utf-8', bom = false, mtime = null }) {
+function setDocument({ name, text, ref, key, encoding = 'utf-8', bom = false, mtime = null, dir = null }) {
+  state.dir = dir;
   state.encoding = encoding;
   state.bom = bom;
   state.mtime = mtime;
@@ -247,11 +250,30 @@ function confirmDiscard() {
 }
 
 // ---------------------------------------------------------------- render
+// Relative image paths are resolved against the folder of the open file (desktop only;
+// the browser has no file paths). The folder was added to the asset scope on open.
+function resolveImage(src) {
+  if (!native || !state.dir) return null;
+  try {
+    const clean = decodeURIComponent(src.replace(/[?#].*$/, ''));
+    return native.assetUrl(native.resolvePath(state.dir, clean));
+  } catch { return null; }
+}
+
+let mermaidPending = false;
+async function renderDiagrams() {
+  // Mermaid measures text while laying out; in a display:none pane every size is 0 and
+  // the SVG comes out broken, so diagrams are drawn only once the preview is visible.
+  if (el.previewPane.offsetParent === null) { mermaidPending = true; return; }
+  mermaidPending = false;
+  await renderMermaid(el.preview, isDark());
+}
+
 async function render(immediate = false) {
-  el.preview.innerHTML = renderMarkdown(state.text);
+  el.preview.innerHTML = renderMarkdown(state.text, { resolveImage });
   buildOutline();
   updateStats();
-  await renderMermaid(el.preview, isDark());
+  await renderDiagrams();
   if (!el.searchPanel.hidden && el.app.dataset.view === 'read') markPreview(el.searchInput.value);
   if (immediate) updateActiveHeading();
 }
@@ -310,7 +332,15 @@ function updateStats() {
 el.preview.addEventListener('click', async (e) => {
   const link = e.target.closest('a');
   const href = link ? (link.getAttribute('href') || link.getAttribute('xlink:href') || '') : '';
-  if (link && href && !href.startsWith('#')) {
+  if (link && href.startsWith('#')) {
+    e.preventDefault();
+    let id = href.slice(1);
+    try { id = decodeURIComponent(id); } catch { /* keep */ }
+    const target = document.getElementById(id);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (link && href) {
     // Never let a document navigate the app itself (SVG <a target=_self> from Mermaid, etc).
     e.preventDefault();
     if (/^https?:\/\//i.test(href)) {
@@ -1017,7 +1047,7 @@ async function boot() {
     },
   });
   editor.onScroll(syncPreviewToEditor);
-  if (import.meta.env.DEV) window.__mdnote = { editor, syncEditorToPreview, syncPreviewToEditor, syncSelectionToEditor, lineBlocks };
+  if (import.meta.env.DEV) window.__mdnote = { editor, syncEditorToPreview, syncPreviewToEditor, syncSelectionToEditor, lineBlocks, renderDiagrams, pending: () => mermaidPending };
   applySettings();
   if (!fs.capabilities.folders) el.sidebarNote.hidden = false;
   setView(settings.view || 'read');
