@@ -412,3 +412,5 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 
 /* range mirrored from the preview selection (red so it reads as 'linked', not 'focused') */
 .cm-synced-sel { background: var(--selection-synced); border-radius: 2px; }
+
+.draft-banner--ext { background: var(--selection-synced); }

@@ -13,7 +13,11 @@ import { fs, initFs } from './fs/index.js';
 import { buildHtmlDocument } from './export.js';
 import welcomeText from './welcome.md?raw';
 
-const VERSION = '0.3.1';
+if (import.meta.env.PROD && window.top !== window.self) {
+  try { window.top.location = window.location.href; } catch { document.documentElement.hidden = true; }
+}
+
+const VERSION = '0.4.0';
 const $ = (id) => document.getElementById(id);
 
 const el = {
@@ -43,6 +47,9 @@ const el = {
   draftBanner: $('draft-banner'),
   draftRestore: $('draft-restore'),
   draftDiscard: $('draft-discard'),
+  extBanner: $('ext-banner'),
+  extReload: $('ext-reload'),
+  extIgnore: $('ext-ignore'),
   outlineList: $('outline-list'),
   stats: $('stats'),
   cursorPos: $('cursor-pos'),
@@ -96,6 +103,10 @@ const state = {
   activePath: null,
   pendingDraft: null,
   eol: '\n',
+  encoding: 'utf-8',
+  bom: false,
+  mtime: null,
+  extIgnored: false,
 };
 
 let editor;
@@ -175,7 +186,12 @@ function updateFileName() {
   el.btnSaveQuick.hidden = !(state.dirty && el.app.dataset.view === 'read');
 }
 
-function setDocument({ name, text, ref, key }) {
+function setDocument({ name, text, ref, key, encoding = 'utf-8', bom = false, mtime = null }) {
+  state.encoding = encoding;
+  state.bom = bom;
+  state.mtime = mtime;
+  state.extIgnored = false;
+  el.extBanner.hidden = true;
   // Keep the editor on LF; remember the file's own line ending so saves round-trip unchanged.
   state.eol = /\r\n/.test(text) ? '\r\n' : '\n';
   text = text.replace(/\r\n?/g, '\n');
@@ -191,6 +207,9 @@ function setDocument({ name, text, ref, key }) {
   render(true);
   el.previewPane.scrollTop = 0;
   checkDraft();
+  // Delayed so it wins over the generic "opened" toast shown by callers.
+  if (encoding === 'euc-kr') setTimeout(() => toast(t('enc.eucKr'), 6000), 150);
+  else if (encoding === 'unknown') setTimeout(() => toast(t('enc.unknown'), 8000), 150);
 }
 
 function onEditorChange(text) {
@@ -289,10 +308,15 @@ function updateStats() {
 
 // Interactive bits inside the rendered document.
 el.preview.addEventListener('click', async (e) => {
-  const link = e.target.closest('a[href]');
-  if (link && native && /^https?:\/\//i.test(link.href)) {
+  const link = e.target.closest('a');
+  const href = link ? (link.getAttribute('href') || link.getAttribute('xlink:href') || '') : '';
+  if (link && href && !href.startsWith('#')) {
+    // Never let a document navigate the app itself (SVG <a target=_self> from Mermaid, etc).
     e.preventDefault();
-    native.openExternal(link.href);
+    if (/^https?:\/\//i.test(href)) {
+      if (native) native.openExternal(href);
+      else window.open(href, '_blank', 'noopener,noreferrer');
+    }
     return;
   }
   const copy = e.target.closest('[data-copy]');
@@ -309,23 +333,24 @@ el.preview.addEventListener('click', async (e) => {
 el.preview.addEventListener('change', (e) => {
   const box = e.target.closest('.task-box');
   if (!box) return;
-  const boxes = [...el.preview.querySelectorAll('.task-box')];
-  toggleTask(boxes.indexOf(box));
+  const item = box.closest('li[data-line]');
+  if (!item) return;
+  const [start, end] = item.dataset.line.split(',').map(Number);
+  toggleTaskAtLines(start, end);
 });
 // Allow clicking disabled-looking checkboxes: they are real inputs, so
 // enable them after each render via CSS pointer events and remove "disabled".
 const enableTaskBoxes = () => el.preview.querySelectorAll('.task-box').forEach((b) => (b.disabled = false));
 new MutationObserver(enableTaskBoxes).observe(el.preview, { childList: true });
 
-function toggleTask(index) {
-  if (index < 0) return;
+// Toggle the task marker of the list item whose source lines are [start, end).
+// The item's own "- [ ]" line is the first matching line in that range; nested
+// items and fenced code inside the item come later, so they are never touched.
+function toggleTaskAtLines(start, end) {
   const lines = state.text.split('\n');
-  let n = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const m = /^(\s*(?:[-*+]|\d+[.)])\s+)\[( |x|X)\](\s+)/.exec(lines[i]);
+  for (let i = start; i < Math.min(end, lines.length); i++) {
+    const m = /^((?:\s*>)*\s*(?:[-*+]|\d+[.)])\s+)\[( |x|X)\](\s+|$)/.exec(lines[i]);
     if (!m) continue;
-    n++;
-    if (n !== index) continue;
     const checked = m[2] !== ' ';
     lines[i] = lines[i].replace(/\[( |x|X)\]/, checked ? '[ ]' : '[x]');
     const text = lines.join('\n');
@@ -368,8 +393,16 @@ async function openFile() {
 }
 
 async function saveFile() {
+  if (state.encoding === 'unknown' && state.ref) {
+    toast(t('enc.blocked'), 5000);
+    return saveFileAs();
+  }
   try {
-    const result = await fs.saveFile(state.ref, state.name || t('untitled'), textForDisk());
+    if (state.ref && !state.extIgnored) {
+      const now = await fs.mtime(state.ref);
+      if (now != null && state.mtime != null && now !== state.mtime && !window.confirm(t('ext.confirmOverwrite'))) return;
+    }
+    const result = await fs.saveFile(state.ref, state.name || t('untitled'), textForDisk(), { bom: state.bom });
     if (!result) return;
     afterSave(result);
   } catch (e) {
@@ -380,7 +413,7 @@ async function saveFile() {
 
 async function saveFileAs() {
   try {
-    const result = await fs.saveFileAs(state.name || t('untitled'), textForDisk());
+    const result = await fs.saveFileAs(state.name || t('untitled'), textForDisk(), { bom: state.bom });
     if (!result) return;
     afterSave(result);
   } catch (e) {
@@ -402,6 +435,10 @@ function afterSave(result) {
   state.ref = result.ref ?? state.ref;
   if (result.name) state.name = result.name;
   if (result.key) state.key = result.key;
+  if (result.mtime != null) state.mtime = result.mtime;
+  if (result.ref || result.key) state.encoding = 'utf-8';
+  state.extIgnored = false;
+  el.extBanner.hidden = true;
   state.savedText = state.text;
   state.dirty = false;
   state.draftSaved = false;
@@ -808,7 +845,9 @@ window.addEventListener('drop', async (e) => {
       if (handle?.kind === 'file') ref = { kind: 'handle', handle };
     } catch { /* not supported */ }
   }
-  setDocument({ name: file.name, text: await file.text(), ref, key: 'f:' + file.name });
+  const { decodeBytes } = await import('./fs/encoding.js');
+  const { text, encoding, bom } = decodeBytes(await file.arrayBuffer());
+  setDocument({ name: file.name, text, ref, key: (ref ? 'h:' : 'f:') + file.name, encoding, bom, mtime: ref ? file.lastModified : null });
   state.activePath = null;
   highlightActiveFile();
   toast(t('toast.opened', { name: file.name }));
@@ -824,11 +863,11 @@ window.addEventListener('beforeunload', (e) => {
 
 // ---------------------------------------------------------------- toast
 let toastTimer = null;
-function toast(msg) {
+function toast(msg, ms = 2400) {
   el.toast.textContent = msg;
   el.toast.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.toast.hidden = true), 2400);
+  toastTimer = setTimeout(() => (el.toast.hidden = true), ms);
 }
 
 // ---------------------------------------------------------------- split view: scroll + selection sync
@@ -929,6 +968,43 @@ el.preview.addEventListener('keyup', (e) => { if (e.shiftKey) syncSelectionToEdi
   el.splitter.addEventListener('pointercancel', stop);
   el.splitter.addEventListener('dblclick', () => { apply(0.5); persistSettings(); });
 })();
+
+// ---------------------------------------------------------------- external changes
+let extChecking = false;
+async function checkExternalChange() {
+  if (extChecking || !state.ref || state.mtime == null || state.extIgnored) return;
+  extChecking = true;
+  try {
+    const now = await fs.mtime(state.ref);
+    if (now == null || now === state.mtime) return;
+    if (!state.dirty) {
+      await reloadFromDisk();
+    } else {
+      el.extBanner.hidden = false;
+    }
+  } catch { /* file may be gone; leave as is */ } finally { extChecking = false; }
+}
+
+async function reloadFromDisk() {
+  const doc = await fs.reread(state.ref, state.key);
+  if (!doc) return;
+  const scroll = el.previewPane.scrollTop;
+  const view = el.app.dataset.view;
+  setDocument({ ...doc, name: doc.name || state.name, key: state.key });
+  el.previewPane.scrollTop = scroll;
+  if (view !== 'read') editor.focus();
+  toast(t('ext.reloaded'));
+}
+
+el.extReload.addEventListener('click', () => { el.extBanner.hidden = true; reloadFromDisk(); });
+el.extIgnore.addEventListener('click', async () => {
+  el.extBanner.hidden = true;
+  state.extIgnored = true; // keep editing; the next save overwrites without asking again
+  state.mtime = await fs.mtime(state.ref);
+});
+window.addEventListener('focus', checkExternalChange);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkExternalChange(); });
+setInterval(checkExternalChange, 3000);
 
 // ---------------------------------------------------------------- boot
 async function boot() {

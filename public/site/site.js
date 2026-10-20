@@ -1,5 +1,9 @@
 // Fills the download buttons from the latest GitHub release, if one exists.
 // Falls back to the "coming soon" note when no release is published yet.
+if (window.top !== window.self && location.hostname !== 'localhost') {
+  try { window.top.location = window.location.href; } catch { document.documentElement.hidden = true; }
+}
+
 const REPO = 'steveoh555/mdnote';
 
 const win = document.getElementById('dl-win');

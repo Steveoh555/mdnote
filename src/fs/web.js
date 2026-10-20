@@ -1,6 +1,8 @@
 // Browser backend: File System Access API when available (Chrome/Edge),
 // otherwise <input type=file> + download fallback.
 
+import { decodeBytes, encodeText } from './encoding.js';
+
 const MD_TYPES = [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown', '.mdx', '.txt'] } }];
 const MD_RE = /\.(md|markdown|mdx)$/i;
 
@@ -18,8 +20,7 @@ export async function openFile() {
       throw e;
     }
     const handle = handles[0];
-    const file = await handle.getFile();
-    return { name: file.name, text: await file.text(), ref: { kind: 'handle', handle }, key: 'h:' + file.name };
+    return docFromFile(await handle.getFile(), { kind: 'handle', handle }, 'h:' + handle.name);
   }
   return new Promise((resolve) => {
     const input = document.createElement('input');
@@ -28,26 +29,43 @@ export async function openFile() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return resolve(null);
-      resolve({ name: file.name, text: await file.text(), ref: null, key: 'f:' + file.name });
+      resolve(await docFromFile(file, null, 'f:' + file.name));
     };
     input.oncancel = () => resolve(null);
     input.click();
   });
 }
 
-export async function saveFile(ref, name, text) {
+export async function docFromFile(file, ref, key) {
+  const { text, encoding, bom } = decodeBytes(await file.arrayBuffer());
+  return { name: file.name, text, ref, key, encoding, bom, mtime: file.lastModified };
+}
+
+export async function saveFile(ref, name, text, opts = {}) {
   if (ref?.kind === 'handle') {
     const perm = await ref.handle.requestPermission?.({ mode: 'readwrite' });
     if (perm && perm !== 'granted') throw new Error('permission-denied');
     const w = await ref.handle.createWritable();
-    await w.write(text);
+    await w.write(encodeText(text, opts.bom));
     await w.close();
-    return { ref, name };
+    return { ref, name, mtime: (await ref.handle.getFile()).lastModified };
   }
-  return saveFileAs(name, text);
+  return saveFileAs(name, text, opts);
 }
 
-export async function saveFileAs(name, text) {
+// Last-modified time of the file behind `ref`, or null when unknown (download fallback).
+export async function mtime(ref) {
+  if (ref?.kind !== 'handle') return null;
+  try { return (await ref.handle.getFile()).lastModified; } catch { return null; }
+}
+
+// Re-read the file behind `ref` (used when it changed on disk).
+export async function reread(ref, key) {
+  if (ref?.kind !== 'handle') return null;
+  return docFromFile(await ref.handle.getFile(), ref, key);
+}
+
+export async function saveFileAs(name, text, opts = {}) {
   if (window.showSaveFilePicker) {
     let handle;
     try {
@@ -57,9 +75,9 @@ export async function saveFileAs(name, text) {
       throw e;
     }
     const w = await handle.createWritable();
-    await w.write(text);
+    await w.write(encodeText(text, opts.bom));
     await w.close();
-    return { ref: { kind: 'handle', handle }, name: handle.name };
+    return { ref: { kind: 'handle', handle }, name: handle.name, key: 'h:' + handle.name, mtime: (await handle.getFile()).lastModified };
   }
   download(name, text, 'text/markdown');
   return { ref: null, name, downloaded: true };
@@ -111,6 +129,5 @@ async function readTree(dir, path, depth) {
 }
 
 export async function readEntry(entry) {
-  const file = await entry.ref.handle.getFile();
-  return { name: file.name, text: await file.text(), ref: entry.ref, key: 'p:' + entry.path };
+  return docFromFile(await entry.ref.handle.getFile(), entry.ref, 'p:' + entry.path);
 }

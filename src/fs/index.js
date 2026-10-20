@@ -25,5 +25,7 @@ export const fs = {
   download: (...a) => backend.download(...a),
   openFolder: (...a) => backend.openFolder(...a),
   readEntry: (...a) => backend.readEntry(...a),
+  mtime: (...a) => backend.mtime(...a),
+  reread: (...a) => backend.reread(...a),
   isTauri: () => backend !== web,
 };

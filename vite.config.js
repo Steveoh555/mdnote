@@ -2,7 +2,33 @@ import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
 // Two pages: "/" is the landing site, "/app/" is the editor itself.
+
+// GitHub Pages cannot send HTTP headers, so the web build carries its CSP in a <meta> tag.
+// The desktop build gets its CSP from tauri.conf.json (Tauri adds nonces for its own
+// injected scripts), so the tag is skipped when the Tauri CLI drives the build.
+const WEB_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https: http:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://api.github.com ws://localhost:* http://localhost:*",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-src 'none'",
+].join('; ');
+
+const metaCsp = () => ({
+  name: 'mdnote-meta-csp',
+  transformIndexHtml(html) {
+    if (process.env.TAURI_ENV_PLATFORM) return html;
+    return html.replace('<meta charset="utf-8" />', `<meta charset="utf-8" />\n  <meta http-equiv="Content-Security-Policy" content="${WEB_CSP}" />`);
+  },
+});
+
 export default defineConfig({
+  plugins: [metaCsp()],
   build: {
     rollupOptions: {
       input: {

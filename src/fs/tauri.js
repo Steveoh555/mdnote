@@ -1,6 +1,7 @@
 // Native backend for the Tauri desktop build.
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { readTextFile, writeTextFile, readDir } from '@tauri-apps/plugin-fs';
+import { readFile, writeFile, readDir, stat } from '@tauri-apps/plugin-fs';
+import { decodeBytes, encodeText } from './encoding.js';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -11,9 +12,28 @@ const MD_RE = /\.(md|markdown|mdx)$/i;
 
 export const capabilities = { folders: true };
 
+// Paths chosen by the user (dialogs, argv, folder trees) are added to the fs scope at
+// runtime; the capability file no longer grants blanket access to the whole disk.
+async function allowPath(path, recursive = false) {
+  try { await invoke('allow_path', { path, recursive }); } catch (e) { console.warn('allow_path', e); }
+}
+
+async function fileMtime(path) {
+  try { const s = await stat(path); return s.mtime ? new Date(s.mtime).getTime() : null; } catch { return null; }
+}
+
 async function docFromPath(path) {
-  const text = await readTextFile(path);
-  return { name: await basename(path), text, ref: { kind: 'path', path }, key: 'p:' + path };
+  await allowPath(path);
+  const { text, encoding, bom } = decodeBytes(await readFile(path));
+  return { name: await basename(path), text, ref: { kind: 'path', path }, key: 'p:' + path, encoding, bom, mtime: await fileMtime(path) };
+}
+
+export async function mtime(ref) {
+  return ref?.kind === 'path' ? fileMtime(ref.path) : null;
+}
+
+export async function reread(ref) {
+  return ref?.kind === 'path' ? docFromPath(ref.path) : null;
 }
 
 export async function openFile() {
@@ -26,19 +46,20 @@ export async function openPath(path) {
   return docFromPath(path);
 }
 
-export async function saveFile(ref, name, text) {
+export async function saveFile(ref, name, text, opts = {}) {
   if (ref?.kind === 'path') {
-    await writeTextFile(ref.path, text);
-    return { ref, name };
+    await writeFile(ref.path, encodeText(text, opts.bom));
+    return { ref, name, mtime: await fileMtime(ref.path) };
   }
-  return saveFileAs(name, text);
+  return saveFileAs(name, text, opts);
 }
 
-export async function saveFileAs(name, text) {
+export async function saveFileAs(name, text, opts = {}) {
   const path = await save({ defaultPath: name, filters: MD_FILTER });
   if (!path) return null;
-  await writeTextFile(path, text);
-  return { ref: { kind: 'path', path }, name: await basename(path), key: 'p:' + path };
+  await allowPath(path);
+  await writeFile(path, encodeText(text, opts.bom));
+  return { ref: { kind: 'path', path }, name: await basename(path), key: 'p:' + path, mtime: await fileMtime(path) };
 }
 
 // Used for exports (HTML). Asks where to save instead of "downloading".
@@ -46,12 +67,14 @@ export async function download(name, text) {
   const ext = name.split('.').pop();
   const path = await save({ defaultPath: name, filters: [{ name: ext.toUpperCase(), extensions: [ext] }] });
   if (!path) return;
-  await writeTextFile(path, text);
+  await allowPath(path);
+  await writeFile(path, encodeText(text));
 }
 
 export async function openFolder() {
   const dir = await open({ directory: true, multiple: false });
   if (!dir) return null;
+  await allowPath(dir, true);
   const name = await basename(dir);
   const tree = await readTree(dir, name, 0);
   return { name, tree, root: dir };
