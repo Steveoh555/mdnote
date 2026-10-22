@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js/lib/common';
+import { t } from './i18n.js';
 
 const escapeHtml = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -21,7 +22,7 @@ const md = new MarkdownIt({
       body = escapeHtml(code);
     }
     const label = language ? `<span class="code__lang">${escapeHtml(language)}</span>` : '';
-    return `<pre class="code">${label}<button class="code__copy" type="button" data-copy>copy</button><code class="hljs">${body}</code></pre>`;
+    return `<pre class="code">${label}<button class="code__copy" type="button" data-copy>${t('code.copy')}</button><code class="hljs">${body}</code></pre>`;
   },
 });
 
@@ -52,9 +53,9 @@ md.renderer.rules.front_matter = (tokens, idx) => {
   const attr = line ? ` data-line="${line}"` : '';
   if (rows.length && rows.length >= body.split('\n').filter((l) => l.trim()).length * 0.6) {
     const trs = rows.map(([, k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`).join('');
-    return `<details class="front-matter"${attr}><summary>${escapeHtml('속성')}</summary><table>${trs}</table></details>\n`;
+    return `<details class="front-matter"${attr}><summary>${escapeHtml(t('fm.title'))}</summary><table>${trs}</table></details>\n`;
   }
-  return `<details class="front-matter"${attr}><summary>${escapeHtml('속성')}</summary><pre><code>${escapeHtml(body)}</code></pre></details>\n`;
+  return `<details class="front-matter"${attr}><summary>${escapeHtml(t('fm.title'))}</summary><pre><code>${escapeHtml(body)}</code></pre></details>\n`;
 };
 
 // --- Task lists: "- [ ] item" / "- [x] item" -------------------------------

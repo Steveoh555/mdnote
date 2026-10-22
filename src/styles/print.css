@@ -14,7 +14,8 @@
   .md mark { background: transparent; outline: 0; }
   .md .front-matter[open] summary, .md .front-matter { break-inside: avoid; }
   .topbar, .fmt-toolbar, .sidebar, .outline, .statusbar, .search-panel, .menu, .toast,
-  .draft-banner, .pane--editor, .code__copy { display: none !important; }
+  .draft-banner, .pane--editor, .code__copy, .zoom-btn, .zoom { display: none !important; }
+  .md pre.mermaid svg { width: auto !important; max-width: 100% !important; }
   .app { display: block !important; }
   .body { display: block !important; }
   .main { display: block !important; }

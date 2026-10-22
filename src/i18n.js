@@ -87,7 +87,7 @@ const dict = {
     'stats.saved': '저장됨',
     'stats.unsaved': '저장 안 됨',
     'stats.draft': '임시 저장됨',
-    'stats.pos': 'Ln {l}, Col {c}',
+    'stats.pos': '줄 {l}, 칸 {c}',
     'untitled': '제목 없음.md',
     'tutorialName': 'Markdown_사용설명서.md',
     'toast.saved': '저장했습니다.',
@@ -95,8 +95,34 @@ const dict = {
     'toast.opened': '열었습니다: {name}',
     'toast.exported': '내보냈습니다.',
     'toast.folderOpened': '폴더를 열었습니다: {name}',
-    'toast.downloadFallback': '이 브라우저는 직접 저장을 지원하지 않아 다운로드로 저장합니다.',
     'confirm.discard': '저장하지 않은 변경 사항이 있습니다. 버리고 계속할까요?',
+    'recent.title': '최근 문서',
+    'recent.missing': "'{name}' 파일을 찾을 수 없어 최근 문서에서 뺐습니다.",
+    'resume.reopen': "지난번에 보던 문서: {name}",
+    'resume.draft': "'{name}'에서 작업하던 임시 저장본이 있습니다. 같은 파일을 다시 열면 복원할 수 있습니다.",
+    'resume.open': '다시 열기',
+    'resume.openFile': '파일 열기…',
+    'resume.close': '닫기',
+    'preview.empty': '파일을 열거나, 이 창에 .md 파일을 끌어다 놓으세요.',
+    'drop.notMd': 'Markdown 파일(.md, .markdown, .txt)만 열 수 있습니다.',
+    'stats.downloaded': '다운로드됨 (원본은 그대로)',
+    'toast.downloaded': "다운로드 폴더에 '{name}' 파일로 내려받았습니다. 원본 파일은 바뀌지 않았습니다.",
+    'toast.exportedDownload': "다운로드 폴더에 '{name}' 파일로 내려받았습니다.",
+    'toast.noChanges': '바뀐 내용이 없어 저장하지 않았습니다.',
+    'zoom.open': '크게 보기',
+    'zoom.fit': '화면에 맞춤',
+    'tip.zoom.in': '확대 (Ctrl+=)',
+    'tip.zoom.out': '축소 (Ctrl+-)',
+    'tip.zoom.close': '닫기 (Esc)',
+    'tip.splitter': '끌어서 비율 조정 · 더블클릭하면 가운데로',
+    'tip.font.dec': '작게',
+    'tip.font.inc': '크게',
+    'font.glyph': '가',
+    'code.copy': '복사',
+    'code.copied': '복사됨',
+    'fm.title': '속성',
+    'tpl.col': '제목',
+    'tpl.mermaid': '```mermaid\nflowchart LR\n    A[시작] --> B{판단}\n    B -- 예 --> C[완료]\n    B -- 아니오 --> A\n```',
   },
   en: {
     'view.read': 'Read',
@@ -194,12 +220,41 @@ const dict = {
     'toast.opened': 'Opened: {name}',
     'toast.exported': 'Exported.',
     'toast.folderOpened': 'Folder opened: {name}',
-    'toast.downloadFallback': 'This browser cannot write files directly, so it will download instead.',
     'confirm.discard': 'You have unsaved changes. Discard them and continue?',
+    'recent.title': 'Recent',
+    'recent.missing': "Couldn't find '{name}', so it was removed from Recent.",
+    'resume.reopen': 'Last document: {name}',
+    'resume.draft': "There is an unsaved draft of '{name}'. Open the same file again to restore it.",
+    'resume.open': 'Reopen',
+    'resume.openFile': 'Open file…',
+    'resume.close': 'Dismiss',
+    'preview.empty': 'Open a file, or drop a .md file onto this window.',
+    'drop.notMd': 'Only Markdown files (.md, .markdown, .txt) can be opened.',
+    'stats.downloaded': 'Downloaded (original unchanged)',
+    'toast.downloaded': "Downloaded as '{name}' to your Downloads folder. The original file is unchanged.",
+    'toast.exportedDownload': "Downloaded '{name}' to your Downloads folder.",
+    'toast.noChanges': 'No changes to save.',
+    'zoom.open': 'Enlarge',
+    'zoom.fit': 'Fit to window',
+    'tip.zoom.in': 'Zoom in (Ctrl+=)',
+    'tip.zoom.out': 'Zoom out (Ctrl+-)',
+    'tip.zoom.close': 'Close (Esc)',
+    'tip.splitter': 'Drag to resize · double-click to center',
+    'tip.font.dec': 'Smaller',
+    'tip.font.inc': 'Larger',
+    'font.glyph': 'Aa',
+    'code.copy': 'Copy',
+    'code.copied': 'Copied',
+    'fm.title': 'Properties',
+    'tpl.col': 'Header',
+    'tpl.mermaid': '```mermaid\nflowchart LR\n    A[Start] --> B{Decide}\n    B -- Yes --> C[Done]\n    B -- No --> A\n```',
   },
 };
 
 let current = 'ko';
+// Mac keyboards: show ⌘ instead of Ctrl (the shortcuts already accept metaKey).
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+const keys = (s) => (isMac ? s.replace(/Ctrl\+Shift\+/g, '⇧⌘').replace(/Ctrl\+/g, '⌘') : s);
 
 export function setLanguage(lang) {
   current = dict[lang] ? lang : 'ko';
@@ -210,7 +265,7 @@ export function setLanguage(lang) {
 export function t(key, vars) {
   let s = dict[current][key] ?? dict.en[key] ?? key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
-  return s;
+  return keys(s);
 }
 
 function applyToDom() {
@@ -222,5 +277,7 @@ function applyToDom() {
   });
   document.querySelectorAll('[data-tip]').forEach((el) => {
     el.title = t('tip.' + el.dataset.tip);
+    if (el.matches('button')) el.setAttribute('aria-label', el.title);
   });
+  document.querySelectorAll('kbd').forEach((el) => { el.textContent = keys(el.textContent); });
 }

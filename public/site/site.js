@@ -23,7 +23,7 @@ async function fillDownloads() {
     let any = false;
     if (winAsset) { win.href = winAsset.browser_download_url; any = true; } else { win.setAttribute('aria-disabled', 'true'); }
     if (macAsset) { mac.href = macAsset.browser_download_url; any = true; } else { mac.setAttribute('aria-disabled', 'true'); }
-    note.textContent = any ? `최신 버전 ${rel.tag_name} · 무료 · 광고 없음` : note.textContent;
+    note.textContent = any ? `최신 버전 ${rel.tag_name} · 무료 · 앱 안에는 광고 없음` : note.textContent;
   } catch {
     win.setAttribute('aria-disabled', 'true');
     mac.setAttribute('aria-disabled', 'true');

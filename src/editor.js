@@ -193,32 +193,74 @@ export function createEditor(parent, { doc, onChange, onCursor }) {
       const block = view.lineBlockAt(l.from);
       view.scrollDOM.scrollTop = Math.max(0, block.top + block.height * frac);
     },
-    // Select `text` (as it appears in the rendered preview) in the source, searching from
-    // 0-based line `line0`. Matching ignores everything except letters and digits so that
-    // markdown punctuation (**, `, [](), #) and whitespace differences do not matter.
-    selectText(text, line0) {
+    // Select `text` (as it appears in the rendered preview) in the source lines [line0, endLine0)
+    // (0-based; the end is optional). Matching compares letters and digits only, after blanking
+    // source that never shows up as text (link targets, list markers, task boxes, fences), so
+    // markdown punctuation, links and multi-block selections line up with the preview.
+    // If nothing matches, the lines of the selected blocks are highlighted instead.
+    selectText(text, line0, endLine0 = null) {
       const wanted = text.replace(/[^\p{L}\p{N}]/gu, '');
       if (!wanted) return false;
       const doc = view.state.doc;
-      const from = doc.line(Math.min(doc.lines, Math.max(1, line0 + 1))).from;
-      const hay = doc.sliceString(from);
-      const chars = [];
-      const idx = [];
-      for (let i = 0; i < hay.length; i++) {
-        const ch = hay[i];
-        if (/[\p{L}\p{N}]/u.test(ch)) { chars.push(ch); idx.push(i); }
-      }
-      const pos = chars.join('').indexOf(wanted);
-      if (pos === -1) return false;
-      const a = from + idx[pos];
-      const b = from + idx[pos + wanted.length - 1] + 1;
+      const clampLine = (n) => Math.min(doc.lines, Math.max(1, n));
+      const first = doc.line(clampLine(line0 + 1));
+      const from = first.from;
+      const bounded = endLine0 != null ? doc.line(clampLine(endLine0 + 2)).to : doc.length;
+      const locate = (to, loose) => {
+        const { str, idx } = letters(maskSource(doc.sliceString(from, to)));
+        let m = null;
+        const pos = str.indexOf(wanted);
+        if (pos !== -1) m = [pos, pos + wanted.length - 1];
+        else if (loose) m = looseMatch(str, wanted);
+        return m && [from + idx[m[0]], from + idx[m[1]] + 1];
+      };
+      let hit = locate(bounded, true) || (bounded < doc.length && locate(doc.length, false));
+      const found = !!hit;
+      if (!hit) hit = [from, endLine0 != null ? doc.line(clampLine(Math.max(endLine0, line0 + 1))).to : first.to];
+      const [a, b] = hit;
       view.dispatch({ selection: { anchor: a, head: b }, effects: setSynced.of({ from: a, to: b }), scrollIntoView: true });
-      return true;
+      return found;
     },
     clearSynced() { view.dispatch({ effects: setSynced.of(null) }); },
     onScroll(fn) { view.scrollDOM.addEventListener('scroll', fn, { passive: true }); },
   };
   return api;
+}
+
+// Same length as `src`, with source-only syntax replaced by spaces (offsets stay valid).
+function maskSource(src) {
+  const blank = (m) => m.replace(/[^\n]/g, ' ');
+  return src
+    .replace(/^ {0,3}(?:```|~~~)[^\n]*$/gm, blank) // fence lines and their info string
+    .replace(/^ {0,3}\[[^\]\n]+\]:[^\n]*$/gm, blank) // reference definitions
+    .replace(/\]\([^)\n]*\)/g, blank) // link / image targets
+    .replace(/\]\[[^\]\n]*\]/g, blank) // reference links
+    .replace(/^[ \t]*(?:>[ \t]*)*(?:(?:\d+[.)]|[-*+])[ \t]+)(?:\[[ xX]\][ \t]+)?/gm, blank) // list markers, task boxes
+    .replace(/&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/gi, blank); // entities
+}
+
+// Letters and digits of `s` joined into one string, with each one's offset in `s`.
+function letters(s) {
+  let str = '';
+  const idx = [];
+  for (let i = 0; i < s.length; i++) {
+    if (/[\p{L}\p{N}]/u.test(s[i])) { str += s[i]; idx.push(i); }
+  }
+  return { str, idx };
+}
+
+// Shortest span of `hay` containing `wanted` in order (gaps allowed), if it is reasonably
+// tight. Catches leftovers the mask cannot know about (e.g. text in HTML-ish syntax).
+function looseMatch(hay, wanted) {
+  let best = null;
+  for (let s = hay.indexOf(wanted[0]); s !== -1; s = hay.indexOf(wanted[0], s + 1)) {
+    let j = 1, i = s + 1;
+    for (; i < hay.length && j < wanted.length; i++) if (hay[i] === wanted[j]) j++;
+    if (j < wanted.length) break; // later starts cannot succeed either
+    if (!best || i - 1 - s < best[1] - best[0]) best = [s, i - 1];
+    if (i - s === wanted.length) break;
+  }
+  return best && best[1] - best[0] + 1 <= wanted.length * 1.5 + 12 ? best : null;
 }
 
 function countMatches(view, query) {

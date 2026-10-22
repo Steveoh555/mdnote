@@ -5,7 +5,7 @@ import './styles/markdown.css';
 import './styles/print.css';
 
 import { t, setLanguage } from './i18n.js';
-import { loadSettings, saveSettings, saveDraft, loadDraft, clearDraft } from './storage.js';
+import { loadSettings, saveSettings, saveDraft, loadDraft, clearDraft, loadRecent, addRecent, removeRecent } from './storage.js';
 import { computeStats } from './stats.js';
 import { renderMarkdown, renderMermaid } from './markdown.js';
 import { createEditor } from './editor.js';
@@ -17,7 +17,8 @@ if (import.meta.env.PROD && window.top !== window.self) {
   try { window.top.location = window.location.href; } catch { document.documentElement.hidden = true; }
 }
 
-const VERSION = '0.4.1';
+const VERSION = '0.5.0';
+const MD_FILE_RE = /\.(md|markdown|mdx|txt)$/i;
 const $ = (id) => document.getElementById(id);
 
 const el = {
@@ -88,6 +89,15 @@ const el = {
   btnSideSaveAs: $('btn-side-save-as'),
   setWidth: $('set-width'),
   toast: $('toast'),
+  recentWrap: $('sidebar-recent'),
+  recentList: $('recent-list'),
+  resumeBanner: $('resume-banner'),
+  resumeText: $('resume-text'),
+  resumeOpen: $('resume-open'),
+  resumeClose: $('resume-close'),
+  zoomDialog: $('zoom-dialog'),
+  zoomStage: $('zoom-stage'),
+  zoomValue: $('zoom-value'),
 };
 
 const settings = loadSettings();
@@ -108,6 +118,7 @@ const state = {
   mtime: null,
   extIgnored: false,
   dir: null,
+  downloaded: false,
 };
 
 let editor;
@@ -130,6 +141,7 @@ function applySettings() {
     { narrow: '620px', normal: '720px', wide: '960px' }[settings.width] || '720px',
   );
   setLanguage(settings.lang);
+  el.preview.dataset.empty = t('preview.empty');
   el.app.dataset.outline = settings.outline ? '1' : '0';
   el.setOutline.checked = !!settings.outline;
   el.setTheme.value = settings.theme;
@@ -188,8 +200,10 @@ function updateFileName() {
   el.btnSaveQuick.hidden = !(state.dirty && el.app.dataset.view === 'read');
 }
 
-function setDocument({ name, text, ref, key, encoding = 'utf-8', bom = false, mtime = null, dir = null }) {
+function setDocument({ name, text, ref, key, encoding = 'utf-8', bom = false, mtime = null, dir = null }, { remember = true } = {}) {
   state.dir = dir;
+  state.downloaded = false;
+  hideResume();
   state.encoding = encoding;
   state.bom = bom;
   state.mtime = mtime;
@@ -210,6 +224,7 @@ function setDocument({ name, text, ref, key, encoding = 'utf-8', bom = false, mt
   render(true);
   el.previewPane.scrollTop = 0;
   checkDraft();
+  if (remember) rememberDoc();
   // Delayed so it wins over the generic "opened" toast shown by callers.
   if (encoding === 'euc-kr') setTimeout(() => toast(t('enc.eucKr'), 6000), 150);
   else if (encoding === 'unknown') setTimeout(() => toast(t('enc.unknown'), 8000), 150);
@@ -249,6 +264,102 @@ function confirmDiscard() {
   return !state.dirty || window.confirm(t('confirm.discard'));
 }
 
+// ---------------------------------------------------------------- recent documents
+// The document on screen is remembered so the next launch can return to it; files that
+// can be reopened (desktop path, browser file handle) also go into the recent list.
+function rememberDoc() {
+  settings.lastKey = state.key;
+  persistSettings();
+  const ref = state.ref;
+  if (ref?.kind === 'path') renderRecent(addRecent({ key: state.key, name: state.name, path: ref.path }));
+  else if (ref?.kind === 'handle' && ref.hid) renderRecent(addRecent({ key: state.key, name: state.name, hid: ref.hid }));
+  else renderRecent();
+}
+
+function renderRecent(list = loadRecent()) {
+  el.recentWrap.hidden = !list.length;
+  el.recentList.innerHTML = '';
+  for (const item of list) {
+    const b = document.createElement('button');
+    b.className = 'tree-row';
+    b.style.setProperty('--indent', '8px');
+    b.innerHTML = ICON_FILE + '<span></span>';
+    b.querySelector('span').textContent = item.name;
+    b.title = item.path || item.name;
+    b.classList.toggle('active', item.key === state.key);
+    b.addEventListener('click', () => openRecentItem(item));
+    el.recentList.appendChild(b);
+  }
+}
+
+async function openRecentItem(item, { quiet = false } = {}) {
+  if (!quiet && item.key !== state.key && !confirmDiscard()) return false;
+  try {
+    const doc = await fs.openRecent(item);
+    if (!doc) return false;
+    setDocument(doc);
+    state.activePath = null;
+    highlightActiveFile();
+    return true;
+  } catch (e) {
+    console.warn(e);
+    hideResume();
+    renderRecent(removeRecent(item.key));
+    if (!quiet) toast(t('recent.missing', { name: item.name }), 4000);
+    return false;
+  }
+}
+
+let resumeAction = null;
+function showResume(text, label, action) {
+  el.resumeText.textContent = text;
+  el.resumeOpen.textContent = label;
+  resumeAction = action;
+  el.resumeBanner.hidden = false;
+}
+function hideResume() {
+  el.resumeBanner.hidden = true;
+  resumeAction = null;
+}
+el.resumeOpen.addEventListener('click', () => resumeAction?.());
+el.resumeClose.addEventListener('click', hideResume);
+
+function blankDocument(opts) {
+  setDocument({ name: t('untitled'), text: '', ref: null, key: 'new' }, opts);
+}
+
+// Launch: first run shows the guide; later runs return to the last document.
+async function restoreSession() {
+  if (!settings.tutorialSeen) {
+    settings.tutorialSeen = true;
+    persistSettings();
+    openTutorial(true);
+    return;
+  }
+  const last = settings.lastKey;
+  if (last === 'welcome') { openTutorial(true, el.app.dataset.view); return; }
+  if (last && last !== 'new') {
+    const item = loadRecent().find((r) => r.key === last);
+    if (item) {
+      if (await fs.canReopenSilently(item)) {
+        if (await openRecentItem(item, { quiet: true })) return;
+      } else {
+        // The browser asks again for permission, which needs a click.
+        blankDocument({ remember: false });
+        showResume(t('resume.reopen', { name: item.name }), t('resume.open'), () => openRecentItem(item));
+        return;
+      }
+    } else if (last.startsWith('f:') && loadDraft(last)) {
+      // Opened without a handle (Firefox/Safari): the draft comes back when the same file is opened.
+      const name = last.slice(2, last.lastIndexOf(':'));
+      blankDocument({ remember: false });
+      showResume(t('resume.draft', { name }), t('resume.openFile'), openFile);
+      return;
+    }
+  }
+  blankDocument();
+}
+
 // ---------------------------------------------------------------- render
 // Relative image paths are resolved against the folder of the open file (desktop only;
 // the browser has no file paths). The folder was added to the asset scope on open.
@@ -267,6 +378,7 @@ async function renderDiagrams() {
   if (el.previewPane.offsetParent === null) { mermaidPending = true; return; }
   mermaidPending = false;
   await renderMermaid(el.preview, isDark());
+  fitDiagrams();
 }
 
 async function render(immediate = false) {
@@ -319,7 +431,9 @@ el.previewPane.addEventListener('scroll', () => requestAnimationFrame(updateActi
 
 function updateStats() {
   const s = computeStats(state.text);
-  const status = state.dirty ? (state.draftSaved ? t('stats.draft') : t('stats.unsaved')) : t('stats.saved');
+  const status = state.dirty
+    ? (state.draftSaved ? t('stats.draft') : t('stats.unsaved'))
+    : (state.downloaded ? t('stats.downloaded') : t('stats.saved'));
   el.stats.textContent = [
     t('stats.chars', { n: s.chars.toLocaleString() }),
     t('stats.words', { n: s.words.toLocaleString() }),
@@ -354,10 +468,15 @@ el.preview.addEventListener('click', async (e) => {
     const code = copy.parentElement.querySelector('code');
     try {
       await navigator.clipboard.writeText(code.innerText);
-      copy.textContent = 'copied';
-      setTimeout(() => (copy.textContent = 'copy'), 1200);
+      copy.textContent = t('code.copied');
+      setTimeout(() => (copy.textContent = t('code.copy')), 1200);
     } catch { /* clipboard blocked */ }
     return;
+  }
+  const zoomBtn = e.target.closest('[data-zoom]') || e.target.closest('pre.mermaid svg');
+  if (zoomBtn) {
+    const svg = zoomBtn.closest('pre.mermaid')?.querySelector('svg');
+    if (svg) openZoom(svg);
   }
 });
 el.preview.addEventListener('change', (e) => {
@@ -391,17 +510,17 @@ function toggleTaskAtLines(start, end) {
 }
 
 // ---------------------------------------------------------------- file ops
-function openTutorial(first) {
+function openTutorial(first, view = 'split') {
   if (!first && !confirmDiscard()) return;
   setDocument({ name: t('tutorialName'), text: welcomeText, ref: null, key: 'welcome' });
   state.activePath = null;
   highlightActiveFile();
-  setView('split');
+  setView(view);
 }
 
 async function newDocument() {
   if (!confirmDiscard()) return;
-  setDocument({ name: t('untitled'), text: '', ref: null, key: 'new' });
+  blankDocument();
   state.activePath = null;
   highlightActiveFile();
   if (el.app.dataset.view === 'read') setView('edit');
@@ -423,6 +542,10 @@ async function openFile() {
 }
 
 async function saveFile() {
+  if (!state.dirty && state.encoding === 'utf-8' && (state.ref || state.downloaded)) {
+    toast(t('toast.noChanges'));
+    return;
+  }
   if (state.encoding === 'unknown' && state.ref) {
     toast(t('enc.blocked'), 5000);
     return saveFileAs();
@@ -457,11 +580,10 @@ function textForDisk() {
 }
 
 function afterSave(result) {
-  if (result.downloaded) {
-    toast(t('toast.downloadFallback'));
-  } else {
-    toast(t('toast.saved'));
-  }
+  const oldKey = state.key;
+  state.downloaded = !!result.downloaded;
+  if (result.downloaded) toast(t('toast.downloaded', { name: result.name || state.name }), 6000);
+  else toast(t('toast.saved'));
   state.ref = result.ref ?? state.ref;
   if (result.name) state.name = result.name;
   if (result.key) state.key = result.key;
@@ -472,7 +594,10 @@ function afterSave(result) {
   state.savedText = state.text;
   state.dirty = false;
   state.draftSaved = false;
+  // "Save as" moves the document to a new key; the draft under the old key is done with too.
+  clearDraft(oldKey);
   clearDraft(state.key);
+  if (!result.downloaded) rememberDoc();
   updateFileName();
   updateStats();
 }
@@ -483,6 +608,7 @@ async function openFolder() {
     if (!folder) return;
     state.folder = folder;
     renderSidebar();
+    if (folder.root) settings.lastFolder = folder.root; // desktop: reopened on the next launch
     persistSettings();
     toast(t('toast.folderOpened', { name: folder.name }));
   } catch (e) {
@@ -670,16 +796,21 @@ function gotoPreviewMatch(i) {
 }
 
 // ---------------------------------------------------------------- export
-function exportHtml() {
-  const title = (state.name || t('untitled')).replace(/\.(md|markdown|mdx|txt)$/i, '');
+async function exportHtml() {
+  const title = (state.name || t('untitled')).replace(MD_FILE_RE, '');
+  // Leave out on-screen helpers: zoom buttons and search highlights.
+  const body = el.preview.cloneNode(true);
+  body.querySelectorAll('.zoom-btn').forEach((n) => n.remove());
+  body.querySelectorAll('mark').forEach((m) => m.replaceWith(document.createTextNode(m.textContent)));
   const html = buildHtmlDocument({
     title,
-    bodyHtml: el.preview.innerHTML,
+    bodyHtml: body.innerHTML,
     dark: isDark(),
     lang: settings.lang,
   });
-  fs.download(title + '.html', html, 'text/html');
-  toast(t('toast.exported'));
+  const saved = await fs.download(title + '.html', html, 'text/html');
+  if (saved === false) return;
+  toast(fs.isTauri() ? t('toast.exported') : t('toast.exportedDownload', { name: title + '.html' }), 5000);
 }
 
 function exportPdf() {
@@ -758,7 +889,7 @@ const FORMAT_ACTIONS = {
   italic: () => editor.wrap('*', '*', 'text'),
   strike: () => editor.wrap('~~', '~~', 'text'),
   hr: () => editor.insertBlock('---'),
-  mermaid: () => editor.insertBlock('```mermaid\nflowchart LR\n    A[시작] --> B{판단}\n    B -- 예 --> C[완료]\n    B -- 아니오 --> A\n```'),
+  mermaid: () => editor.insertBlock(t('tpl.mermaid')),
   code: () => editor.wrap('`', '`', 'code'),
   link: () => editor.wrap('[', '](https://)', 'text'),
   image: () => editor.wrap('![', '](image.png)', 'alt'),
@@ -770,7 +901,10 @@ const FORMAT_ACTIONS = {
   task: () => editor.prefixLines(() => '- [ ] '),
   quote: () => editor.prefixLines(() => '> '),
   codeblock: () => editor.insertBlock('```\n\n```'),
-  table: () => editor.insertBlock('| 제목 1 | 제목 2 | 제목 3 |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |'),
+  table: () => {
+    const h = t('tpl.col');
+    editor.insertBlock(`| ${h} 1 | ${h} 2 | ${h} 3 |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |`);
+  },
 };
 
 el.fmtToolbar.addEventListener('mousedown', (e) => { if (e.target.closest('.fmt-btn')) e.preventDefault(); }); // keep editor focus
@@ -790,6 +924,11 @@ window.addEventListener('keydown', (e) => {
   }
   if (!mod) return;
   const k = e.key.toLowerCase();
+  if (el.zoomDialog.open) {
+    const z = { '=': 1.25, '+': 1.25, '-': 0.8 }[k];
+    if (z) { e.preventDefault(); setZoom(zoom.scale * z); } else if (k === '0') { e.preventDefault(); fitZoom(); }
+    return;
+  }
   const inEditor = el.app.dataset.view !== 'read';
   const map = {
     o: openFile,
@@ -865,22 +1004,24 @@ window.addEventListener('drop', async (e) => {
   dragDepth = 0;
   el.app.classList.remove('dragging');
   const file = e.dataTransfer?.files?.[0];
-  if (!file || !/\.(md|markdown|mdx|txt)$/i.test(file.name)) return;
-  if (!confirmDiscard()) return;
+  if (!file) return;
+  if (!MD_FILE_RE.test(file.name)) { toast(t('drop.notMd')); return; }
+  // Ask for the handle before anything else: drop data is only readable during the event.
   const item = e.dataTransfer.items?.[0];
-  let ref = null;
-  if (item?.getAsFileSystemHandle) {
-    try {
-      const handle = await item.getAsFileSystemHandle();
-      if (handle?.kind === 'file') ref = { kind: 'handle', handle };
-    } catch { /* not supported */ }
+  const pending = item?.getAsFileSystemHandle ? item.getAsFileSystemHandle().catch(() => null) : Promise.resolve(null);
+  if (!confirmDiscard()) return;
+  try {
+    const handle = await pending;
+    const doc = await fs.docFromDrop(file, handle?.kind === 'file' ? handle : null);
+    if (!doc.ref) doc.mtime = null;
+    setDocument(doc);
+    state.activePath = null;
+    highlightActiveFile();
+    toast(t('toast.opened', { name: file.name }));
+  } catch (err) {
+    console.error(err);
+    toast(String(err.message || err));
   }
-  const { decodeBytes } = await import('./fs/encoding.js');
-  const { text, encoding, bom } = decodeBytes(await file.arrayBuffer());
-  setDocument({ name: file.name, text, ref, key: (ref ? 'h:' : 'f:') + file.name, encoding, bom, mtime: ref ? file.lastModified : null });
-  state.activePath = null;
-  highlightActiveFile();
-  toast(t('toast.opened', { name: file.name }));
 });
 
 window.addEventListener('beforeunload', (e) => {
@@ -956,13 +1097,18 @@ function syncSelectionToEditor() {
   if (!sel || sel.isCollapsed || !sel.rangeCount) { editor.clearSynced(); return; }
   const range = sel.getRangeAt(0);
   if (!el.preview.contains(range.commonAncestorContainer)) return;
-  const text = sel.toString().trim();
+  // Text as rendered, minus on-screen helpers that have no source (copy buttons, labels).
+  const frag = range.cloneContents();
+  frag.querySelectorAll('.code__copy, .code__lang, .zoom-btn, summary').forEach((n) => n.remove());
+  const text = frag.textContent.trim();
   if (!text) return;
-  let node = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
-  const block = node?.closest('[data-line]');
-  const line = block ? Number(block.dataset.line.split(',')[0]) : 0;
+  const blockOf = (n) => (n.nodeType === 1 ? n : n.parentElement)?.closest('[data-line]');
+  const startBlock = blockOf(range.startContainer);
+  const endBlock = blockOf(range.endContainer);
+  const line = startBlock ? Number(startBlock.dataset.line.split(',')[0]) : 0;
+  const endLine = endBlock ? Number(endBlock.dataset.line.split(',')[1]) : null;
   syncLock++;
-  editor.selectText(text, line);
+  editor.selectText(text, line, endLine);
   setTimeout(() => syncLock--, 60);
 }
 el.preview.addEventListener('mouseup', () => setTimeout(syncSelectionToEditor, 0));
@@ -970,10 +1116,13 @@ el.preview.addEventListener('keyup', (e) => { if (e.shiftKey) syncSelectionToEdi
 
 // Draggable divider between editor and preview (kept between 25% and 75%).
 (function initSplitter() {
-  const MIN = 0.25, MAX = 0.75;
+  const MIN = 0.25, MAX = 0.75, MIN_PX = 280;
   let dragging = false;
   const apply = (ratio) => {
-    settings.splitRatio = Math.min(MAX, Math.max(MIN, ratio));
+    // Neither side may get narrower than MIN_PX (the CSS clamps the same way on resize).
+    const w = el.main.getBoundingClientRect().width || 1;
+    const lo = Math.max(MIN, MIN_PX / w), hi = Math.min(MAX, 1 - MIN_PX / w);
+    settings.splitRatio = lo > hi ? 0.5 : Math.min(hi, Math.max(lo, ratio));
     document.documentElement.style.setProperty('--split-ratio', String(settings.splitRatio));
   };
   el.splitter.addEventListener('pointerdown', (e) => {
@@ -1047,43 +1196,150 @@ async function boot() {
     },
   });
   editor.onScroll(syncPreviewToEditor);
-  if (import.meta.env.DEV) window.__mdnote = { editor, syncEditorToPreview, syncPreviewToEditor, syncSelectionToEditor, lineBlocks, renderDiagrams, pending: () => mermaidPending };
+  if (import.meta.env.DEV) window.__mdnote = { editor, syncEditorToPreview, syncPreviewToEditor, syncSelectionToEditor, lineBlocks, renderDiagrams, pending: () => mermaidPending, setDocument, state, openZoom };
   applySettings();
   if (!fs.capabilities.folders) el.sidebarNote.hidden = false;
   setView(settings.view || 'read');
+  renderRecent();
 
-  // First launch shows the welcome document; later launches restore the draft of a new doc if any.
-  const draft = loadDraft('new');
-  if (draft?.text) {
-    setDocument({ name: t('untitled'), text: '', ref: null, key: 'new' });
+  // A file passed on launch (desktop double-click) wins; otherwise return to the last document.
+  const launched = fs.isTauri() ? await initNative() : false;
+  if (launched) {
+    // Someone who starts by opening a file already knows what they want; the guide stays in Settings.
+    settings.tutorialSeen = true;
+    persistSettings();
   } else {
-    // First launch: open the Markdown guide side-by-side so the syntax can be learned by doing.
-    openTutorial(true);
+    await restoreSession();
   }
   const qs = new URLSearchParams(location.search);
   if (qs.get('view')) setView(qs.get('view'));
   if (qs.has('outline')) setOutlineVisible(qs.get('outline') !== '0');
-  if (fs.isTauri()) await initNative();
 }
 
 // ---------------------------------------------------------------- desktop (Tauri) hooks
 let native = null;
 async function initNative() {
   native = await import('./fs/tauri.js');
-  const openPath = async (path) => {
-    if (!confirmDiscard()) return;
+  const openPath = async (path, view = 'read') => {
+    if (!confirmDiscard()) return false;
     try {
       setDocument(await native.openPath(path));
       state.activePath = null;
       highlightActiveFile();
-      setView('read');
+      if (view) setView(view);
+      return true;
     } catch (e) {
       toast(String(e.message || e));
+      return false;
     }
   };
   native.onOpenFile(openPath);
+  native.onDrop({
+    enter: () => el.app.classList.add('dragging'),
+    leave: () => el.app.classList.remove('dragging'),
+    drop: async (paths) => {
+      el.app.classList.remove('dragging');
+      const path = paths.find((p) => MD_FILE_RE.test(p));
+      if (!path) { if (paths.length) toast(t('drop.notMd')); return; }
+      const name = path.split(/[\\/]/).pop();
+      if (await openPath(path, null)) toast(t('toast.opened', { name }));
+    },
+  });
+  if (settings.lastFolder) {
+    try {
+      state.folder = await native.openFolderPath(settings.lastFolder);
+      renderSidebar();
+    } catch {
+      settings.lastFolder = null;
+      persistSettings();
+    }
+  }
   const launch = await native.launchFile();
-  if (launch) await openPath(launch);
+  return launch ? openPath(launch) : false;
 }
+
+// ---------------------------------------------------------------- diagram zoom
+const zoom = { svg: null, w: 0, h: 0, scale: 1 };
+
+// Wide diagrams shrink to the text column; below READABLE of their natural size they keep
+// that size instead and scroll sideways, so labels never drop to unreadable pixel sizes.
+const READABLE = 0.7;
+function fitDiagrams() {
+  el.preview.querySelectorAll('pre.mermaid').forEach((pre) => {
+    const svg = pre.querySelector('svg');
+    if (!svg) return;
+    const vb = svg.viewBox?.baseVal;
+    if (vb?.width && vb.width * READABLE > pre.clientWidth) {
+      svg.style.maxWidth = 'none';
+      svg.style.width = Math.round(vb.width * READABLE) + 'px';
+    }
+    if (!pre.querySelector('.zoom-btn')) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'zoom-btn';
+      b.dataset.zoom = '';
+      b.title = t('zoom.open');
+      b.setAttribute('aria-label', t('zoom.open'));
+      b.innerHTML = '<svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4.5 4.5M6 8.5h5M8.5 6v5"/></svg>';
+      pre.appendChild(b);
+    }
+  });
+}
+
+function openZoom(svg) {
+  const vb = svg.viewBox?.baseVal;
+  const r = svg.getBoundingClientRect();
+  zoom.w = vb?.width || r.width;
+  zoom.h = vb?.height || r.height;
+  const clone = svg.cloneNode(true);
+  clone.removeAttribute('style');
+  clone.removeAttribute('width');
+  clone.removeAttribute('height');
+  zoom.svg = clone;
+  el.zoomStage.replaceChildren(clone);
+  el.zoomDialog.showModal();
+  fitZoom();
+}
+
+function setZoom(scale) {
+  if (!zoom.svg) return;
+  zoom.scale = Math.min(4, Math.max(0.2, scale));
+  zoom.svg.style.width = Math.round(zoom.w * zoom.scale) + 'px';
+  zoom.svg.style.height = Math.round(zoom.h * zoom.scale) + 'px';
+  el.zoomValue.textContent = Math.round(zoom.scale * 100) + '%';
+}
+
+function fitZoom() {
+  const r = el.zoomStage.getBoundingClientRect();
+  setZoom(Math.min((r.width - 48) / zoom.w, (r.height - 48) / zoom.h, 2));
+}
+
+$('zoom-in').addEventListener('click', () => setZoom(zoom.scale * 1.25));
+$('zoom-out').addEventListener('click', () => setZoom(zoom.scale * 0.8));
+$('zoom-fit').addEventListener('click', fitZoom);
+$('zoom-close').addEventListener('click', () => el.zoomDialog.close());
+el.zoomDialog.addEventListener('click', (e) => { if (e.target === el.zoomDialog) el.zoomDialog.close(); });
+el.zoomDialog.addEventListener('close', () => { el.zoomStage.replaceChildren(); zoom.svg = null; });
+el.zoomStage.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  setZoom(zoom.scale * (e.deltaY < 0 ? 1.1 : 0.9));
+}, { passive: false });
+(function initPan() {
+  let start = null;
+  el.zoomStage.addEventListener('pointerdown', (e) => {
+    start = { x: e.clientX, y: e.clientY, left: el.zoomStage.scrollLeft, top: el.zoomStage.scrollTop };
+    el.zoomStage.classList.add('panning');
+    try { el.zoomStage.setPointerCapture(e.pointerId); } catch { /* synthetic */ }
+  });
+  el.zoomStage.addEventListener('pointermove', (e) => {
+    if (!start) return;
+    el.zoomStage.scrollLeft = start.left - (e.clientX - start.x);
+    el.zoomStage.scrollTop = start.top - (e.clientY - start.y);
+  });
+  const end = () => { start = null; el.zoomStage.classList.remove('panning'); };
+  el.zoomStage.addEventListener('pointerup', end);
+  el.zoomStage.addEventListener('pointercancel', end);
+})();
 
 boot();

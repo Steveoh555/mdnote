@@ -75,7 +75,6 @@ pub fn run() {
                 .inner_size(1280.0, 820.0)
                 .min_inner_size(720.0, 480.0)
                 .center()
-                .disable_drag_drop_handler()
                 .on_navigation(|url| {
                     matches!(url.scheme(), "tauri" | "http" | "https")
                         && matches!(url.host_str(), Some("tauri.localhost") | Some("localhost") | Some("127.0.0.1"))

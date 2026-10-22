@@ -1,5 +1,7 @@
 const SETTINGS_KEY = 'mdnote.settings';
 const DRAFT_PREFIX = 'mdnote.draft:';
+const RECENT_KEY = 'mdnote.recent';
+const RECENT_MAX = 8;
 
 const defaults = {
   theme: 'system',
@@ -10,6 +12,9 @@ const defaults = {
   width: 'normal',
   view: 'read',
   outline: true,
+  tutorialSeen: false,
+  lastKey: null,
+  lastFolder: null,
 };
 
 function safeGet(key) {
@@ -25,7 +30,8 @@ function safeRemove(key) {
 export function loadSettings() {
   const raw = safeGet(SETTINGS_KEY);
   if (!raw) return { ...defaults };
-  try { return { ...defaults, ...JSON.parse(raw) }; } catch { return { ...defaults }; }
+  // Anyone with saved settings has used the app before (and seen the guide).
+  try { return { ...defaults, tutorialSeen: true, ...JSON.parse(raw) }; } catch { return { ...defaults }; }
 }
 
 export function saveSettings(settings) {
@@ -44,4 +50,21 @@ export function loadDraft(docKey) {
 
 export function clearDraft(docKey) {
   safeRemove(DRAFT_PREFIX + docKey);
+}
+
+// Recent documents, newest first: { key, name, path? (desktop), hid? (browser handle id), at }.
+export function loadRecent() {
+  try { return JSON.parse(safeGet(RECENT_KEY)) || []; } catch { return []; }
+}
+
+export function addRecent(item) {
+  const list = [{ ...item, at: Date.now() }, ...loadRecent().filter((r) => r.key !== item.key)].slice(0, RECENT_MAX);
+  safeSet(RECENT_KEY, JSON.stringify(list));
+  return list;
+}
+
+export function removeRecent(key) {
+  const list = loadRecent().filter((r) => r.key !== key);
+  safeSet(RECENT_KEY, JSON.stringify(list));
+  return list;
 }

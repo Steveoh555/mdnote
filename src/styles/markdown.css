@@ -131,6 +131,9 @@
   font-size: 0.94em;
 }
 .md th, .md td {
+  /* break-word (unlike the body's "anywhere") does not shrink cells to one letter in narrow panes;
+     the table scrolls sideways instead */
+  overflow-wrap: break-word;
   border: 1px solid var(--border);
   padding: 0.5em 0.8em;
   text-align: left;

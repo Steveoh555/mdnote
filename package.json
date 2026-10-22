@@ -1,7 +1,7 @@
 {
   "name": "mdnote",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Read-first Markdown viewer and editor",
   "type": "module",
   "scripts": {

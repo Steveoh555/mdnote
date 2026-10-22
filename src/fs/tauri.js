@@ -5,6 +5,7 @@ import { decodeBytes, encodeText } from './encoding.js';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { join, basename, dirname } from '@tauri-apps/api/path';
 
 const MD_FILTER = [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdx', 'txt'] }];
@@ -81,14 +82,20 @@ export async function saveFileAs(name, text, opts = {}) {
 export async function download(name, text) {
   const ext = name.split('.').pop();
   const path = await save({ defaultPath: name, filters: [{ name: ext.toUpperCase(), extensions: [ext] }] });
-  if (!path) return;
+  if (!path) return false;
   await allowPath(path);
   await writeFile(path, encodeText(text));
+  return true;
 }
 
 export async function openFolder() {
   const dir = await open({ directory: true, multiple: false });
   if (!dir) return null;
+  return openFolderPath(dir);
+}
+
+// Also used to restore the last folder on launch.
+export async function openFolderPath(dir) {
   await allowPath(dir, true);
   const name = await basename(dir);
   const tree = await readTree(dir, name, 0);
@@ -120,6 +127,14 @@ export async function readEntry(entry) {
   return docFromPath(entry.ref.path);
 }
 
+export async function openRecent(item) {
+  return docFromPath(item.path);
+}
+
+export async function canReopenSilently(item) {
+  return !!item.path;
+}
+
 export async function openExternal(url) {
   await openUrl(url);
 }
@@ -131,4 +146,15 @@ export async function launchFile() {
 
 export function onOpenFile(handler) {
   return listen('open-file', (e) => handler(e.payload));
+}
+
+// Files dropped on the window arrive through Tauri (with their real paths) rather than as
+// HTML5 drop events, so a dropped file can be saved back in place with Ctrl+S.
+export function onDrop({ enter, leave, drop }) {
+  return getCurrentWebview().onDragDropEvent((e) => {
+    const p = e.payload;
+    if (p.type === 'enter') enter(p.paths || []);
+    else if (p.type === 'leave') leave();
+    else if (p.type === 'drop') drop(p.paths || []);
+  });
 }

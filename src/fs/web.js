@@ -2,6 +2,7 @@
 // otherwise <input type=file> + download fallback.
 
 import { decodeBytes, encodeText } from './encoding.js';
+import { handleId, getHandle } from './handles.js';
 
 const MD_TYPES = [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown', '.mdx', '.txt'] } }];
 const MD_RE = /\.(md|markdown|mdx)$/i;
@@ -19,8 +20,7 @@ export async function openFile() {
       if (e.name === 'AbortError') return null;
       throw e;
     }
-    const handle = handles[0];
-    return docFromFile(await handle.getFile(), { kind: 'handle', handle }, 'h:' + handle.name);
+    return docFromHandle(handles[0]);
   }
   return new Promise((resolve) => {
     const input = document.createElement('input');
@@ -29,7 +29,7 @@ export async function openFile() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return resolve(null);
-      resolve(await docFromFile(file, null, 'f:' + file.name));
+      resolve(await docFromFile(file, null, fileKey(file)));
     };
     input.oncancel = () => resolve(null);
     input.click();
@@ -39,6 +39,36 @@ export async function openFile() {
 export async function docFromFile(file, ref, key) {
   const { text, encoding, bom } = decodeBytes(await file.arrayBuffer());
   return { name: file.name, text, ref, key, encoding, bom, mtime: file.lastModified };
+}
+
+// A file without a handle (Firefox/Safari, plain <input>) cannot be written back; its drafts
+// are keyed by name + modification time so two different files with one name never mix.
+const fileKey = (file) => `f:${file.name}:${file.lastModified}`;
+
+async function docFromHandle(handle) {
+  const hid = await handleId(handle);
+  return docFromFile(await handle.getFile(), { kind: 'handle', handle, hid }, 'h:' + hid);
+}
+
+// A file dropped onto the window (with its handle when the browser provides one).
+export async function docFromDrop(file, handle) {
+  if (handle) return docFromHandle(handle);
+  return docFromFile(file, null, fileKey(file));
+}
+
+// Reopen a recent document by its stored handle id. Must run from a click (permission prompt).
+export async function openRecent(item) {
+  const handle = item.hid ? await getHandle(item.hid) : null;
+  if (!handle) throw new Error('missing');
+  const perm = await handle.requestPermission?.({ mode: 'readwrite' });
+  if (perm && perm !== 'granted') return null;
+  return docFromHandle(handle);
+}
+
+// Whether a recent document can be reopened without asking (permission still granted).
+export async function canReopenSilently(item) {
+  const handle = item.hid ? await getHandle(item.hid) : null;
+  try { return !!handle && (await handle.queryPermission?.({ mode: 'readwrite' })) === 'granted'; } catch { return false; }
 }
 
 export async function saveFile(ref, name, text, opts = {}) {
@@ -77,7 +107,8 @@ export async function saveFileAs(name, text, opts = {}) {
     const w = await handle.createWritable();
     await w.write(encodeText(text, opts.bom));
     await w.close();
-    return { ref: { kind: 'handle', handle }, name: handle.name, key: 'h:' + handle.name, mtime: (await handle.getFile()).lastModified };
+    const hid = await handleId(handle);
+    return { ref: { kind: 'handle', handle, hid }, name: handle.name, key: 'h:' + hid, mtime: (await handle.getFile()).lastModified };
   }
   download(name, text, 'text/markdown');
   return { ref: null, name, downloaded: true };
@@ -129,5 +160,5 @@ async function readTree(dir, path, depth) {
 }
 
 export async function readEntry(entry) {
-  return docFromFile(await entry.ref.handle.getFile(), entry.ref, 'p:' + entry.path);
+  return docFromHandle(entry.ref.handle);
 }

@@ -99,7 +99,8 @@ svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width:
   color: var(--text-faint); font-size: 13px;
 }
 .ad-slot ins { display: block; }
-.ad-slot:has(ins) > span { display: none; }
+/* Until AdSense code is pasted in, the slot (and its "광고" placeholder) is not shown at all. */
+.ad-slot:not(:has(ins)) { display: none; }
 
 .footer {
   max-width: 1160px; margin: 0 auto;

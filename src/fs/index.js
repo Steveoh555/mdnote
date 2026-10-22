@@ -27,5 +27,8 @@ export const fs = {
   readEntry: (...a) => backend.readEntry(...a),
   mtime: (...a) => backend.mtime(...a),
   reread: (...a) => backend.reread(...a),
+  openRecent: (...a) => backend.openRecent(...a),
+  docFromDrop: (...a) => backend.docFromDrop(...a),
+  canReopenSilently: (...a) => backend.canReopenSilently(...a),
   isTauri: () => backend !== web,
 };

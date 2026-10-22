@@ -78,10 +78,11 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 /* ---------- formatting toolbar ---------- */
 .fmt-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
-  height: 38px;
-  padding: 0 10px;
+  min-height: 38px;
+  padding: 4px 10px;
   background: var(--bg-chrome);
   border-bottom: 1px solid var(--border);
   user-select: none;
@@ -155,7 +156,11 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 .splitter { display: none; }
 .app[data-view="edit"] .pane--editor { display: block; }
 .app[data-view="edit"] .pane--preview { display: none; }
-.app[data-view="split"] .pane--editor { display: block; flex: 0 0 calc(var(--split-ratio, 0.5) * 100%); }
+.app[data-view="split"] .pane--editor {
+  display: block;
+  /* ratio from the divider, but never narrower than 280px on either side */
+  flex: 0 0 clamp(min(280px, 50%), calc(var(--split-ratio, 0.5) * 100%), max(calc(100% - 280px), 50%));
+}
 .app[data-view="split"] .pane--preview { flex: 1 1 0; }
 .app[data-view="split"] .splitter {
   display: block;
@@ -340,11 +345,21 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
   .body { grid-template-columns: 220px 0 1fr !important; }
   .outline { display: none !important; }
 }
+/* Split view needs room for two text columns: drop the outline earlier, then narrow the sidebar. */
+@media (max-width: 1400px) {
+  .app[data-view="split"] .body { grid-template-columns: 220px 0 1fr !important; }
+  .app[data-view="split"] .outline { display: none !important; }
+}
+@media (max-width: 1100px) {
+  .app[data-view="split"] .body { grid-template-columns: 180px 0 1fr !important; }
+  .side-btn kbd { display: none; }
+}
 @media (max-width: 720px) {
-  .body { grid-template-columns: 170px 0 1fr !important; }
+  .body, .app[data-view="split"] .body { grid-template-columns: 170px 0 1fr !important; }
   .segmented button { min-width: 0; padding: 0 10px; }
-  .md#preview { padding: 24px 18px 40vh; }
+  .md#preview, .app[data-view="split"] .md#preview { padding: 24px 18px 40vh; }
   .search-panel { right: 8px; left: 8px; width: auto; }
+  .fmt-sep { margin: 0 3px; }
 }
 
 /* ---------- labelled export dropdown ---------- */
@@ -377,10 +392,14 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 }
 .side-btn:hover { background: var(--bg-hover); }
 .side-btn svg { width: 16px; height: 16px; color: var(--text-muted); flex: none; }
+.side-btn span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- save buttons ---------- */
 .fmt-spacer { flex: 1; }
 .fmt-toolbar .btn--small { margin-left: 4px; }
+/* margin-left:auto keeps Save on the right even when a narrow window wraps it to a second row */
+.fmt-toolbar .fmt-spacer { display: none; }
+.fmt-toolbar #btn-save { margin-left: auto; }
 .topbar__left .btn--small { margin-left: 6px; }
 
 /* ---------- settings groups ---------- */
@@ -414,3 +433,57 @@ kbd { font: 11px var(--font-ui); color: var(--text-faint); }
 .cm-synced-sel { background: var(--selection-synced); border-radius: 2px; }
 
 .draft-banner--ext { background: var(--selection-synced); }
+
+/* ---------- recent documents ---------- */
+.sidebar__recent { padding: 8px 6px 6px; border-bottom: 1px solid var(--border); }
+.sidebar__label {
+  padding: 2px 10px 4px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+/* ---------- empty document ---------- */
+.md#preview:empty::before {
+  content: attr(data-empty);
+  display: block;
+  margin-top: 18vh;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
+/* ---------- diagram zoom ---------- */
+.md pre.mermaid svg { cursor: zoom-in; }
+.md .zoom-btn {
+  position: absolute; top: 0.3em; right: 0.3em;
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-muted);
+  opacity: 0; transition: opacity 0.12s;
+}
+.md pre.mermaid:hover .zoom-btn, .md .zoom-btn:focus-visible { opacity: 1; }
+.md .zoom-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.md .zoom-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+.zoom {
+  width: min(96vw, 1600px); height: 90vh;
+  max-width: none; max-height: none;
+  padding: 0;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.zoom[open] { display: flex; flex-direction: column; }
+.zoom::backdrop { background: rgba(0, 0, 0, 0.45); }
+.zoom__bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-chrome);
+}
+.zoom__value { min-width: 48px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.zoom__stage { flex: 1; min-height: 0; display: flex; overflow: auto; padding: 24px; cursor: grab; }
+.zoom__stage.panning { cursor: grabbing; user-select: none; }
+.zoom__stage svg { margin: auto; flex: none; max-width: none; }
