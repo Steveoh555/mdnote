@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 
 // Two pages: "/" is the landing site, "/app/" is the editor itself.
 
-// GitHub Pages cannot send HTTP headers, so the web build carries its CSP in a <meta> tag.
+// The web build carries its CSP in a <meta> tag as well as the header in public/_headers
+// (Cloudflare Pages), so the policy still applies wherever the files are served from.
 // The desktop build gets its CSP from tauri.conf.json (Tauri adds nonces for its own
 // injected scripts), so the tag is skipped when the Tauri CLI drives the build.
 const WEB_CSP = [
